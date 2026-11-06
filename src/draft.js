@@ -84,7 +84,7 @@ async function pickSlug(root, job, outline) {
   return uniqueSlug(base, existing.map((post) => post.slug))
 }
 
-async function writeVersion(root, slug, text) {
+export async function writeVersion(root, slug, text) {
   const dir = join(root, '.blog', 'versions', slug)
   await mkdir(dir, { recursive: true })
   const stamp = new Date().toISOString().replace(/[:.]/g, '-')
