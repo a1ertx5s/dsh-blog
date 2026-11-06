@@ -49,5 +49,8 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/a1ertx5s/dsh-blog.git"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1"
   }
 }
