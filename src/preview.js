@@ -42,7 +42,12 @@ export async function buildPreview(root, { slug = '' } = {}) {
 export async function readPreview(root, id, rel = '') {
   if (!ID.test(String(id))) return null
   const base = resolve(previewDir(root, id))
-  const clean = String(rel || '').replace(/^\/+/, '')
+  let clean = String(rel || '').replace(/^\/+/, '')
+  try {
+    clean = decodeURIComponent(clean)
+  } catch {
+    return null
+  }
   if (clean.includes('..') || clean.includes('\0')) return null
   const file = clean === '' || clean.endsWith('/')
     ? resolve(base, clean, 'index.html')
