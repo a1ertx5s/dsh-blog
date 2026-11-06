@@ -248,6 +248,7 @@ export function ArticleDetail({ slug, onSaved }) {
             {publishing ? t('发布中…') : t('发布')}
           </button>
         ) : null}
+        <a className="blog-button" href={`/blog/posts/${encodeURIComponent(slug)}/export`} download>{t('导出')}</a>
       </header>
 
       {message ? (
