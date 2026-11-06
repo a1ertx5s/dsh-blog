@@ -16,6 +16,7 @@ import { publishDue, startScheduler } from './schedule.js'
 import { createJobsFromTopics, proposeTopics } from './topics.js'
 import { exportMarkdown, importMarkdown } from './transfer.js'
 import { buildPreview, readPreview } from './preview.js'
+import { createSession, deleteSession, listSessions, readSession, sendMessage } from './chat.js'
 import { listVersions, readVersion, restoreVersion } from './versions.js'
 import { runProbe, serviceStatus } from './probe.js'
 import { renderMarkdown } from './render.js'
@@ -30,6 +31,7 @@ const POST = /^posts\/([^/]+)$/
 const PUBLISH = /^posts\/([^/]+)\/publish$/
 const EXPORT = /^posts\/([^/]+)\/export$/
 const PREVIEW = /^preview\/(pv-[a-z0-9-]+)(\/.*)?$/
+const CHAT = /^chat\/sessions(?:\/([^/]+))?(?:\/(messages))?$/
 const VERSIONS = /^posts\/([^/]+)\/versions(?:\/([^/]+))?(?:\/(restore))?$/
 
 async function readRunFile(root, id, name) {
@@ -79,6 +81,36 @@ async function handle(ctx, req, res, root) {
   if (method === 'POST' && path === 'upload') {
     const buffer = await readBuffer(req, MAX_IMAGE_BYTES)
     return json(res, 201, await saveImage(root, buffer))
+  }
+
+  const chatMatch = CHAT.exec(path)
+  if (chatMatch) {
+    const id = chatMatch[1]
+    if (!id && method === 'POST') {
+      const body = await readJson(req).catch(() => ({}))
+      return json(res, 201, { session: await createSession(root, { slug: body.slug }) })
+    }
+    if (!id && method === 'GET') {
+      const url = new URL(req.url || '/', 'http://localhost')
+      return json(res, 200, { sessions: await listSessions(root, { slug: url.searchParams.get('slug') ?? undefined }) })
+    }
+    if (id && !chatMatch[2] && method === 'GET') {
+      const session = await readSession(root, id)
+      return session ? json(res, 200, session) : json(res, 404, { error: '会话不存在' })
+    }
+    if (id && !chatMatch[2] && method === 'DELETE') {
+      const result = await deleteSession(root, id)
+      return result ? json(res, 200, result) : json(res, 404, { error: '会话不存在' })
+    }
+    if (id && chatMatch[2] === 'messages' && method === 'POST') {
+      const body = await readJson(req)
+      return json(res, 200, await sendMessage(ctx, {
+        root,
+        id,
+        content: body.content,
+        selection: body.selection,
+      }))
+    }
   }
 
   if (method === 'POST' && path === 'preview') {
