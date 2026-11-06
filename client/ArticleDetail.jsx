@@ -50,6 +50,10 @@ export function ArticleDetail({ slug, onSaved }) {
   const [selectedVersion, setSelectedVersion] = React.useState(null)
   const [diff, setDiff] = React.useState([])
   const [versionBusy, setVersionBusy] = React.useState(false)
+  const [previewInfo, setPreviewInfo] = React.useState(null)
+  const [previewPage, setPreviewPage] = React.useState('post')
+  const [previewing, setPreviewing] = React.useState(false)
+  const [publishingPreview, setPublishingPreview] = React.useState(false)
   const bodyRef = React.useRef(null)
   const fileRef = React.useRef(null)
   const coverRef = React.useRef(null)
@@ -170,6 +174,36 @@ export function ArticleDetail({ slug, onSaved }) {
     }
   }
 
+  async function openPreview() {
+    setPreviewing(true)
+    setMessage(null)
+    try {
+      const result = await api('/preview', { method: 'POST', body: { slug } })
+      setPreviewInfo(result)
+      setPreviewPage('post')
+    } catch (err) {
+      setMessage({ kind: 'error', text: err.message })
+    } finally {
+      setPreviewing(false)
+    }
+  }
+
+  async function publishPreview() {
+    setPublishingPreview(true)
+    try {
+      const result = await api(`/posts/${encodeURIComponent(slug)}/publish`, { method: 'POST' })
+      applyArticle(result.article)
+      setPreviewInfo(null)
+      const deployError = result.deploy && !result.deploy.ok ? `；部署失败：${result.deploy.error}` : ''
+      setMessage({ kind: deployError ? 'error' : 'ok', text: `${t('已发布并构建站点')}${deployError}` })
+      onSaved?.()
+    } catch (err) {
+      setMessage({ kind: 'error', text: err.message })
+    } finally {
+      setPublishingPreview(false)
+    }
+  }
+
   async function publish() {
     setPublishing(true)
     setMessage(null)
@@ -248,6 +282,9 @@ export function ArticleDetail({ slug, onSaved }) {
             {publishing ? t('发布中…') : t('发布')}
           </button>
         ) : null}
+        <button type="button" className="blog-button" onClick={openPreview} disabled={previewing}>
+          {previewing ? t('构建中…') : t('本地预览')}
+        </button>
         <a className="blog-button" href={`/blog/posts/${encodeURIComponent(slug)}/export`} download>{t('导出')}</a>
       </header>
 
@@ -364,6 +401,38 @@ export function ArticleDetail({ slug, onSaved }) {
           upload(file, 'cover')
         }}
       />
+      {previewInfo ? (
+        <div
+          className="blog-local-overlay"
+          role="dialog"
+          onClick={(event) => { if (event.target === event.currentTarget) setPreviewInfo(null) }}
+        >
+          <div className="blog-local-modal">
+            <div className="blog-local-toolbar">
+              <strong>{t('本地预览')}</strong>
+              <div className="blog-tabs">
+                <button type="button" className={previewPage === 'post' ? 'is-on' : ''} onClick={() => setPreviewPage('post')}>{t('文章')}</button>
+                <button type="button" className={previewPage === 'home' ? 'is-on' : ''} onClick={() => setPreviewPage('home')}>{t('首页')}</button>
+                <button type="button" className={previewPage === 'about' ? 'is-on' : ''} onClick={() => setPreviewPage('about')}>{t('关于')}</button>
+              </div>
+              <span className="blog-spacer" />
+              <button type="button" className="blog-button is-primary" onClick={publishPreview} disabled={publishingPreview}>
+                {publishingPreview ? t('发布中…') : t('发布')}
+              </button>
+              <button type="button" className="blog-button" onClick={() => setPreviewInfo(null)}>{t('关闭')}</button>
+            </div>
+            <iframe
+              className="blog-local-frame"
+              title={t('本地预览')}
+              src={previewPage === 'home'
+                ? previewInfo.basePath
+                : previewPage === 'about'
+                  ? `${previewInfo.basePath}about.html`
+                  : `${previewInfo.basePath}posts/${encodeURIComponent(slug)}.html`}
+            />
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }
