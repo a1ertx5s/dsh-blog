@@ -2,7 +2,8 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createArticle, listArticles, readArticle, writeArticle } from './article.js'
-import { buildSite } from './build.js'
+import { buildSite, loadSite } from './build.js'
+import { deploySite, readDeployStatus } from './deploy.js'
 import { json, readBuffer, readJson, requestPath, requestRejection, sameSite } from './http.js'
 import { MAX_IMAGE_BYTES, readImage, saveImage } from './images.js'
 import { cancelJob, createJob, listJobs, readJob, recoverJobs, retryJob, updateJob } from './jobs.js'
@@ -101,17 +102,33 @@ async function handle(ctx, req, res, root) {
       if (!job) return json(res, 404, { error: 'job 不存在' })
       if (job.status !== 'review') return json(res, 409, { error: '只有待审的 job 能通过' })
       await updateJob(root, id, { status: 'approved', stage: 'review', note: 'approved' })
+      const site = await loadSite(root)
+      let published = false
+      let deploy = null
       if (job.slug) {
         const article = await readArticle(root, job.slug)
         if (article) {
-          await writeArticle(root, job.slug, {
-            data: { ...article.data, status: 'review' },
+          const saved = await writeArticle(root, job.slug, {
+            data: { ...article.data, status: site.deploy.autoPush ? 'published' : 'review' },
             body: article.body,
             version: article.version,
           })
+          if (site.deploy.autoPush) {
+            published = true
+            try {
+              await buildSite(root)
+              deploy = await deploySite(root, {
+                build: false,
+                paths: ['content', 'docs'],
+                message: `publish: ${saved.data.title}`,
+              })
+            } catch (err) {
+              deploy = { ok: false, error: err.message }
+            }
+          }
         }
       }
-      return json(res, 200, { ok: true })
+      return json(res, 200, { ok: true, published, deploy })
     }
 
     if (JOB[2] === 'reject' && method === 'POST') {
@@ -166,6 +183,18 @@ async function handle(ctx, req, res, root) {
     return json(res, 200, await readBuild(root))
   }
 
+  if (method === 'POST' && path === 'deploy') {
+    try {
+      return json(res, 200, await deploySite(root))
+    } catch (err) {
+      return json(res, err.status || 500, { error: err.message, result: err.result ?? null })
+    }
+  }
+
+  if (method === 'GET' && path === 'deploy') {
+    return json(res, 200, await readDeployStatus(root))
+  }
+
   const publish = PUBLISH.exec(path)
   if (publish && method === 'POST') {
     let slug
@@ -181,8 +210,21 @@ async function handle(ctx, req, res, root) {
       body: article.body,
       version: article.version,
     })
+    const site = await loadSite(root)
     const build = await buildSite(root)
-    return json(res, 200, { article: saved, build })
+    let deploy = null
+    if (site.deploy.autoPush) {
+      try {
+        deploy = await deploySite(root, {
+          build: false,
+          paths: ['content', 'docs'],
+          message: `publish: ${saved.data.title}`,
+        })
+      } catch (err) {
+        deploy = { ok: false, error: err.message }
+      }
+    }
+    return json(res, 200, { article: saved, build, deploy })
   }
 
   const match = POST.exec(path)
