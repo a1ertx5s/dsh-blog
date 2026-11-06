@@ -62,11 +62,13 @@ export function Pipeline({ onOpenArticle }) {
   const [artifacts, setArtifacts] = React.useState({})
   const [rejecting, setRejecting] = React.useState(null)
   const [comment, setComment] = React.useState('')
+  const [queue, setQueue] = React.useState(null)
 
   const load = React.useCallback(async () => {
     try {
-      const data = await api('/jobs')
+      const [data, nextQueue] = await Promise.all([api('/jobs'), api('/queue').catch(() => null)])
       setJobs(data.jobs || [])
+      setQueue(nextQueue)
       setError('')
     } catch (err) {
       setError(err.message)
@@ -82,6 +84,18 @@ export function Pipeline({ onOpenArticle }) {
     const timer = setInterval(load, 2000)
     return () => clearInterval(timer)
   }, [jobs, load])
+
+  async function runAll() {
+    setBusy('queue')
+    try {
+      await api('/queue/run', { method: 'POST', body: {} })
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy('')
+    }
+  }
 
   async function create() {
     const text = brief.trim()
@@ -163,6 +177,17 @@ export function Pipeline({ onOpenArticle }) {
           {busy === 'create' ? t('创建中…') : t('开始生产')}
         </button>
       </div>
+
+      {jobs.some((job) => job.status === 'queued') ? (
+        <div className="blog-job-actions">
+          <button type="button" className="blog-button is-primary" onClick={runAll} disabled={busy === 'queue'}>
+            {t('全部运行')}（{jobs.filter((job) => job.status === 'queued').length}）
+          </button>
+        </div>
+      ) : null}
+      {queue?.running ? (
+        <p className="blog-muted">{t('队列')}: {queue.current?.title || '…'} · {queue.results.length}/{queue.total}</p>
+      ) : null}
 
       {loading ? <p className="blog-muted">{t('加载中…')}</p> : null}
       {!loading && jobs.length === 0 ? <p className="blog-muted">{t('还没有生产任务。')}</p> : null}
