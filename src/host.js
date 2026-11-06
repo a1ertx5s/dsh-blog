@@ -14,6 +14,7 @@ import { isJobActive, startPipeline, startRejection } from './pipeline.js'
 import { readQueue, startQueue } from './queue.js'
 import { publishDue, startScheduler } from './schedule.js'
 import { createJobsFromTopics, proposeTopics } from './topics.js'
+import { listVersions, readVersion, restoreVersion } from './versions.js'
 import { runProbe, serviceStatus } from './probe.js'
 import { renderMarkdown } from './render.js'
 import { ensureBlogRoot, inspectBlogRoot, resolveBlogRoot } from './root.js'
@@ -25,6 +26,7 @@ const PREFIX = '/blog'
 const VERSION = '0.1.0'
 const POST = /^posts\/([^/]+)$/
 const PUBLISH = /^posts\/([^/]+)\/publish$/
+const VERSIONS = /^posts\/([^/]+)\/versions(?:\/([^/]+))?(?:\/(restore))?$/
 
 async function readRunFile(root, id, name) {
   try {
@@ -242,6 +244,24 @@ async function handle(ctx, req, res, root) {
     const body = await readJson(req).catch(() => ({}))
     const site = await loadSite(root)
     return json(res, 200, await checkSite(root, site, { live: Boolean(body.live) }))
+  }
+
+  const versions = VERSIONS.exec(path)
+  if (versions) {
+    const slug = decodeURIComponent(versions[1])
+    const id = versions[2] ? decodeURIComponent(versions[2]) : null
+    if (!id && method === 'GET') {
+      return json(res, 200, { versions: await listVersions(root, slug) })
+    }
+    if (id && method === 'GET') {
+      const value = await readVersion(root, slug, id)
+      return value ? json(res, 200, value) : json(res, 404, { error: '版本不存在' })
+    }
+    if (id && versions[3] === 'restore' && method === 'POST') {
+      const body = await readJson(req).catch(() => ({}))
+      const article = await restoreVersion(root, slug, id, { version: body.version })
+      return json(res, 200, { article })
+    }
   }
 
   const publish = PUBLISH.exec(path)

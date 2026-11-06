@@ -5,6 +5,25 @@ import { t } from './i18n.js'
 const STATUSES = ['draft', 'review', 'published']
 const STATUS_LABEL = { draft: '草稿', review: '待审', published: '已发布' }
 
+function diffLines(before, after) {
+  const a = String(before).split('\n')
+  const b = String(after).split('\n')
+  let start = 0
+  while (start < a.length && start < b.length && a[start] === b[start]) start += 1
+  let endA = a.length
+  let endB = b.length
+  while (endA > start && endB > start && a[endA - 1] === b[endB - 1]) {
+    endA -= 1
+    endB -= 1
+  }
+  const rows = []
+  for (let index = 0; index < start; index += 1) rows.push({ type: 'same', text: a[index] })
+  for (let index = start; index < endA; index += 1) rows.push({ type: 'del', text: a[index] })
+  for (let index = start; index < endB; index += 1) rows.push({ type: 'add', text: b[index] })
+  for (let index = endA; index < a.length; index += 1) rows.push({ type: 'same', text: a[index] })
+  return rows
+}
+
 function escapeHtml(text) {
   return String(text).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]))
 }
@@ -27,6 +46,10 @@ export function ArticleDetail({ slug, onSaved }) {
   const [conflict, setConflict] = React.useState(false)
   const [preview, setPreview] = React.useState('')
   const [uploading, setUploading] = React.useState(false)
+  const [versions, setVersions] = React.useState([])
+  const [selectedVersion, setSelectedVersion] = React.useState(null)
+  const [diff, setDiff] = React.useState([])
+  const [versionBusy, setVersionBusy] = React.useState(false)
   const bodyRef = React.useRef(null)
   const fileRef = React.useRef(null)
   const coverRef = React.useRef(null)
@@ -56,6 +79,13 @@ export function ArticleDetail({ slug, onSaved }) {
   }, [slug, applyArticle])
 
   React.useEffect(() => { load() }, [load])
+
+  React.useEffect(() => {
+    if (tab !== 'versions') return
+    api(`/posts/${encodeURIComponent(slug)}/versions`)
+      .then((data) => setVersions(data.versions || []))
+      .catch((err) => setMessage({ kind: 'error', text: err.message }))
+  }, [tab, slug])
 
   React.useEffect(() => {
     if (tab !== 'preview') return undefined
@@ -104,6 +134,39 @@ export function ArticleDetail({ slug, onSaved }) {
       }
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function viewVersion(id) {
+    setVersionBusy(true)
+    try {
+      const value = await api(`/posts/${encodeURIComponent(slug)}/versions/${encodeURIComponent(id)}`)
+      setSelectedVersion(value)
+      setDiff(diffLines(body, value.body))
+    } catch (err) {
+      setMessage({ kind: 'error', text: err.message })
+    } finally {
+      setVersionBusy(false)
+    }
+  }
+
+  async function restore() {
+    if (!selectedVersion) return
+    setVersionBusy(true)
+    try {
+      const result = await api(`/posts/${encodeURIComponent(slug)}/versions/${encodeURIComponent(selectedVersion.id)}/restore`, {
+        method: 'POST',
+        body: { version },
+      })
+      applyArticle(result.article)
+      setMessage({ kind: 'ok', text: t('已恢复该版本') })
+      setSelectedVersion(null)
+      setDiff([])
+      onSaved?.()
+    } catch (err) {
+      setMessage({ kind: 'error', text: err.message })
+    } finally {
+      setVersionBusy(false)
     }
   }
 
@@ -230,6 +293,7 @@ export function ArticleDetail({ slug, onSaved }) {
           <div className="blog-tabs">
             <button type="button" className={tab === 'preview' ? 'is-on' : ''} onClick={() => setTab('preview')}>{t('预览')}</button>
             <button type="button" className={tab === 'source' ? 'is-on' : ''} onClick={() => setTab('source')}>{t('源码')}</button>
+            <button type="button" className={tab === 'versions' ? 'is-on' : ''} onClick={() => setTab('versions')}>{t('版本')}</button>
           </div>
           <button type="button" className="blog-button" onClick={() => fileRef.current?.click()} disabled={uploading}>
             {uploading ? t('上传中…') : t('插入图片')}
@@ -237,7 +301,7 @@ export function ArticleDetail({ slug, onSaved }) {
         </div>
         {tab === 'preview' ? (
           <div className="blog-preview" dangerouslySetInnerHTML={{ __html: preview }} />
-        ) : (
+        ) : tab === 'source' ? (
           <textarea
             ref={bodyRef}
             className="blog-source"
@@ -245,6 +309,35 @@ export function ArticleDetail({ slug, onSaved }) {
             onChange={(event) => setBody(event.target.value)}
             spellCheck={false}
           />
+        ) : (
+          <div className="blog-versions">
+            <div className="blog-version-list">
+              {versions.length ? versions.map((item) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  className={selectedVersion?.id === item.id ? 'is-on' : ''}
+                  onClick={() => viewVersion(item.id)}
+                  disabled={versionBusy}
+                >
+                  {item.at} · {item.bytes}B
+                </button>
+              )) : <p className="blog-muted">{t('还没有历史版本')}</p>}
+            </div>
+            {selectedVersion ? (
+              <div className="blog-diff">
+                <div className="blog-diff-head">
+                  <span>{selectedVersion.at}</span>
+                  <button type="button" className="blog-button" onClick={restore} disabled={versionBusy}>
+                    {t('恢复此版本')}
+                  </button>
+                </div>
+                <pre>{diff.map((row, index) => (
+                  <div key={index} className={`is-${row.type}`}>{row.type === 'add' ? '+' : row.type === 'del' ? '-' : ' '}{row.text}</div>
+                ))}</pre>
+              </div>
+            ) : null}
+          </div>
         )}
       </div>
 
