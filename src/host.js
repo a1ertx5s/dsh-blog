@@ -2,6 +2,7 @@
 import { createArticle, listArticles, readArticle, writeArticle } from './article.js'
 import { json, readBuffer, readJson, requestPath, requestRejection, sameSite } from './http.js'
 import { MAX_IMAGE_BYTES, readImage, saveImage } from './images.js'
+import { cancelJob, createJob, listJobs, readJob, recoverJobs, retryJob } from './jobs.js'
 import { runProbe, serviceStatus } from './probe.js'
 import { renderMarkdown } from './render.js'
 import { ensureBlogRoot, inspectBlogRoot, resolveBlogRoot } from './root.js'
@@ -27,7 +28,7 @@ async function handle(ctx, req, res, root) {
       ok: true,
       plugin: name,
       version: VERSION,
-      stage: 'M1-5',
+      stage: 'M2-1',
       services: serviceStatus(ctx),
     })
   }
@@ -44,6 +45,22 @@ async function handle(ctx, req, res, root) {
   if (method === 'POST' && path === 'upload') {
     const buffer = await readBuffer(req, MAX_IMAGE_BYTES)
     return json(res, 201, await saveImage(root, buffer))
+  }
+
+  if (path === 'jobs') {
+    if (method === 'GET') return json(res, 200, { jobs: await listJobs(root) })
+    if (method === 'POST') return json(res, 201, await createJob(root, await readJson(req)))
+  }
+
+  const JOB = /^jobs\/([^/]+)(?:\/(cancel|retry))?$/.exec(path)
+  if (JOB) {
+    const id = JOB[1]
+    if (JOB[2] === 'cancel' && method === 'POST') return json(res, 200, await cancelJob(root, id))
+    if (JOB[2] === 'retry' && method === 'POST') return json(res, 200, await retryJob(root, id))
+    if (!JOB[2] && method === 'GET') {
+      const job = await readJob(root, id)
+      return job ? json(res, 200, job) : json(res, 404, { error: 'job 不存在' })
+    }
   }
 
   const IMAGE = /^images\/([^/]+)$/.exec(path)
@@ -92,6 +109,7 @@ export default {
   inject,
   apply(ctx) {
     const root = resolveBlogRoot()
+    recoverJobs(root).catch(() => {})
     ctx.effect(() => ctx.webServer.register({
       kind: 'prefix',
       path: PREFIX,
