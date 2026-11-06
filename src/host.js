@@ -1,5 +1,6 @@
 // dsh-blog host 半片：/blog/* 路由与鉴权。
 import { json, requestPath, requestRejection, sameSite } from './http.js'
+import { runProbe, serviceStatus } from './probe.js'
 
 export const name = 'dsh-blog'
 export const inject = ['webServer', 'connection']
@@ -16,7 +17,17 @@ async function handle(ctx, req, res) {
   if (path === null) return json(res, 404, { error: '接口不存在' })
 
   if (req.method === 'GET' && path === 'state') {
-    return json(res, 200, { ok: true, plugin: name, version: VERSION, stage: 'M0-4' })
+    return json(res, 200, {
+      ok: true,
+      plugin: name,
+      version: VERSION,
+      stage: 'M0-5',
+      services: serviceStatus(ctx),
+    })
+  }
+
+  if (req.method === 'POST' && path === 'probe') {
+    return json(res, 200, await runProbe(ctx))
   }
 
   return json(res, 404, { error: '接口不存在' })
