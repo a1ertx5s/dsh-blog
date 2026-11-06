@@ -1,6 +1,6 @@
 {
   "name": "dsh-blog",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "DeepSeek Harness 插件：AI 长文工厂，自动研究、写作与发布到 GitHub Pages",
   "type": "module",
   "main": "src/host.js",
@@ -15,7 +15,9 @@
     "dist",
     "cordis.patch.yml",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "docs/USAGE.md",
+    "docs/GITHUB_PAGES.md"
   ],
   "dsh": {
     "bundle": {
