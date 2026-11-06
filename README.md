@@ -17,12 +17,11 @@ DeepSeek Harness 插件：一个 AI 长文工厂。选题进，文章出，自�
 
 ## 开发
 
-开发环境在 M0 建立，届时补齐以下命令：
-
 ```bash
 npm install
 npm test
 npm run build
+npm run watch   # 监听 client/，改动后重新打包
 ```
 
 ## 许可

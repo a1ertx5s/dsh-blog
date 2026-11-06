@@ -6,3 +6,4 @@ coverage/
 .env
 .env.*
 *.log
+.npm-cache/
