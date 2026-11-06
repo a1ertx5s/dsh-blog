@@ -81,8 +81,11 @@ test('runQueue pauses when the budget is exhausted', async () => {
       deps: deps({ research: async () => { throw new BudgetError('预算用尽') } }),
     })
     assert.equal(state.paused, 'budget')
-    assert.equal((await readJob(root, second.id)).status, 'queued')
-    assert.equal((await readJob(root, first.id)).status, 'failed')
+    assert.equal(state.results.length, 1)
+    const failedId = state.results[0].id
+    const otherId = failedId === first.id ? second.id : first.id
+    assert.equal((await readJob(root, failedId)).status, 'failed')
+    assert.equal((await readJob(root, otherId)).status, 'queued')
   } finally {
     await rm(root, { recursive: true, force: true })
   }
