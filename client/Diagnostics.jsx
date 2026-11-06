@@ -17,6 +17,7 @@ export function Diagnostics() {
   const [probe, setProbe] = React.useState(null)
   const [build, setBuild] = React.useState(null)
   const [deploy, setDeploy] = React.useState(null)
+  const [check, setCheck] = React.useState(null)
   const [error, setError] = React.useState('')
   const [busy, setBusy] = React.useState(false)
 
@@ -64,6 +65,18 @@ export function Diagnostics() {
       const result = await api('/deploy', { method: 'POST' })
       setDeploy(result)
       setBuild(result.build || build)
+      setError('')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function runCheck() {
+    setBusy(true)
+    try {
+      setCheck(await api('/check', { method: 'POST', body: { live: false } }))
       setError('')
     } catch (err) {
       setError(err.message)
@@ -127,6 +140,25 @@ export function Diagnostics() {
           </p>
         ) : null}
         {deploy?.warning ? <p className="blog-note">{deploy.warning}</p> : null}
+      </div>
+
+      <div className="blog-diag-card">
+        <h3>{t('站点自检')}</h3>
+        <button type="button" className="blog-button" onClick={runCheck} disabled={busy}>
+          {busy ? t('自检中…') : t('运行自检')}
+        </button>
+        {check ? (
+          <p className={check.ok ? 'blog-note is-ok' : 'blog-note is-error'}>
+            {check.ok ? t('通过') : `${check.issues.length} ${t('个问题')}`}
+          </p>
+        ) : null}
+        {check?.issues?.length ? (
+          <ul className="blog-check-list">
+            {check.issues.slice(0, 5).map((issue, index) => (
+              <li key={index}>{issue.type}: {issue.target}</li>
+            ))}
+          </ul>
+        ) : null}
       </div>
 
       <div className="blog-diag-card">

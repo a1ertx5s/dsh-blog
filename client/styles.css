@@ -746,3 +746,11 @@
   color: var(--dsw-alias-label-secondary);
   border-color: var(--dsw-alias-border-l2);
 }
+
+.blog-check-list {
+  margin: 8px 0 0;
+  padding-left: 1.2em;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--dsw-alias-label-secondary);
+}
