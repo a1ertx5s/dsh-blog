@@ -2,6 +2,7 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createArticle, listArticles, readArticle, writeArticle } from './article.js'
+import { buildSite } from './build.js'
 import { json, readBuffer, readJson, requestPath, requestRejection, sameSite } from './http.js'
 import { MAX_IMAGE_BYTES, readImage, saveImage } from './images.js'
 import { cancelJob, createJob, listJobs, readJob, recoverJobs, retryJob, updateJob } from './jobs.js'
@@ -16,10 +17,19 @@ export const inject = ['webServer', 'connection']
 const PREFIX = '/blog'
 const VERSION = '0.1.0'
 const POST = /^posts\/([^/]+)$/
+const PUBLISH = /^posts\/([^/]+)\/publish$/
 
 async function readRunFile(root, id, name) {
   try {
     return JSON.parse(await readFile(join(root, '.blog', 'runs', id, name), 'utf8'))
+  } catch {
+    return null
+  }
+}
+
+async function readBuild(root) {
+  try {
+    return JSON.parse(await readFile(join(root, '.blog', 'build.json'), 'utf8'))
   } catch {
     return null
   }
@@ -39,7 +49,7 @@ async function handle(ctx, req, res, root) {
       ok: true,
       plugin: name,
       version: VERSION,
-      stage: 'M2-8',
+      stage: 'M3-1',
       services: serviceStatus(ctx),
     })
   }
@@ -146,6 +156,33 @@ async function handle(ctx, req, res, root) {
   if (path === 'posts') {
     if (method === 'GET') return json(res, 200, { posts: await listArticles(root) })
     if (method === 'POST') return json(res, 201, await createArticle(root, await readJson(req)))
+  }
+
+  if (method === 'POST' && path === 'build') {
+    return json(res, 200, await buildSite(root))
+  }
+
+  if (method === 'GET' && path === 'build') {
+    return json(res, 200, await readBuild(root))
+  }
+
+  const publish = PUBLISH.exec(path)
+  if (publish && method === 'POST') {
+    let slug
+    try {
+      slug = decodeURIComponent(publish[1])
+    } catch {
+      return json(res, 400, { error: 'slug 无效' })
+    }
+    const article = await readArticle(root, slug)
+    if (!article) return json(res, 404, { error: '文章不存在' })
+    const saved = await writeArticle(root, slug, {
+      data: { ...article.data, status: 'published' },
+      body: article.body,
+      version: article.version,
+    })
+    const build = await buildSite(root)
+    return json(res, 200, { article: saved, build })
   }
 
   const match = POST.exec(path)
