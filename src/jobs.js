@@ -8,7 +8,7 @@ export const JOB_STATUSES = [
   'approved', 'rejected', 'published', 'failed', 'cancelled',
 ]
 
-export const JOB_STAGES = ['research', 'outline', 'draft', 'gates', 'revise', 'publish']
+export const JOB_STAGES = ['research', 'outline', 'draft', 'gates', 'revise', 'review', 'publish']
 
 const TRANSITIONS = {
   queued: ['running', 'cancelled'],

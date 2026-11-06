@@ -1,8 +1,11 @@
 // dsh-blog host 半片：/blog/* 路由与鉴权。
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { createArticle, listArticles, readArticle, writeArticle } from './article.js'
 import { json, readBuffer, readJson, requestPath, requestRejection, sameSite } from './http.js'
 import { MAX_IMAGE_BYTES, readImage, saveImage } from './images.js'
-import { cancelJob, createJob, listJobs, readJob, recoverJobs, retryJob } from './jobs.js'
+import { cancelJob, createJob, listJobs, readJob, recoverJobs, retryJob, updateJob } from './jobs.js'
+import { isJobActive, startPipeline, startRejection } from './pipeline.js'
 import { runProbe, serviceStatus } from './probe.js'
 import { renderMarkdown } from './render.js'
 import { ensureBlogRoot, inspectBlogRoot, resolveBlogRoot } from './root.js'
@@ -13,6 +16,14 @@ export const inject = ['webServer', 'connection']
 const PREFIX = '/blog'
 const VERSION = '0.1.0'
 const POST = /^posts\/([^/]+)$/
+
+async function readRunFile(root, id, name) {
+  try {
+    return JSON.parse(await readFile(join(root, '.blog', 'runs', id, name), 'utf8'))
+  } catch {
+    return null
+  }
+}
 
 async function handle(ctx, req, res, root) {
   const rejection = requestRejection(ctx, req)
@@ -28,7 +39,7 @@ async function handle(ctx, req, res, root) {
       ok: true,
       plugin: name,
       version: VERSION,
-      stage: 'M2-7',
+      stage: 'M2-8',
       services: serviceStatus(ctx),
     })
   }
@@ -48,18 +59,70 @@ async function handle(ctx, req, res, root) {
   }
 
   if (path === 'jobs') {
-    if (method === 'GET') return json(res, 200, { jobs: await listJobs(root) })
+    if (method === 'GET') {
+      const jobs = await listJobs(root)
+      return json(res, 200, { jobs: jobs.map((job) => ({ ...job, running: isJobActive(job.id) })) })
+    }
     if (method === 'POST') return json(res, 201, await createJob(root, await readJson(req)))
   }
 
-  const JOB = /^jobs\/([^/]+)(?:\/(cancel|retry))?$/.exec(path)
+  const JOB = /^jobs\/([^/]+)(?:\/(cancel|retry|run|approve|reject|artifacts))?$/.exec(path)
   if (JOB) {
     const id = JOB[1]
     if (JOB[2] === 'cancel' && method === 'POST') return json(res, 200, await cancelJob(root, id))
     if (JOB[2] === 'retry' && method === 'POST') return json(res, 200, await retryJob(root, id))
     if (!JOB[2] && method === 'GET') {
       const job = await readJob(root, id)
-      return job ? json(res, 200, job) : json(res, 404, { error: 'job 不存在' })
+      return job ? json(res, 200, { ...job, running: isJobActive(job.id) }) : json(res, 404, { error: 'job 不存在' })
+    }
+
+    if (JOB[2] === 'run' && method === 'POST') {
+      const job = await readJob(root, id)
+      if (!job) return json(res, 404, { error: 'job 不存在' })
+      if (job.status !== 'queued' && job.status !== 'failed') {
+        return json(res, 409, { error: `当前状态不能运行：${job.status}` })
+      }
+      const started = startPipeline(ctx, { root, job })
+      return json(res, started ? 202 : 409, { started })
+    }
+
+    if (JOB[2] === 'approve' && method === 'POST') {
+      const job = await readJob(root, id)
+      if (!job) return json(res, 404, { error: 'job 不存在' })
+      if (job.status !== 'review') return json(res, 409, { error: '只有待审的 job 能通过' })
+      await updateJob(root, id, { status: 'approved', stage: 'review', note: 'approved' })
+      if (job.slug) {
+        const article = await readArticle(root, job.slug)
+        if (article) {
+          await writeArticle(root, job.slug, {
+            data: { ...article.data, status: 'review' },
+            body: article.body,
+            version: article.version,
+          })
+        }
+      }
+      return json(res, 200, { ok: true })
+    }
+
+    if (JOB[2] === 'reject' && method === 'POST') {
+      const body = await readJson(req)
+      const comment = String(body.comment ?? '').trim()
+      if (!comment) return json(res, 400, { error: '打回意见不能为空' })
+      const job = await readJob(root, id)
+      if (!job) return json(res, 404, { error: 'job 不存在' })
+      if (job.status !== 'review') return json(res, 409, { error: '只有待审的 job 能打回' })
+      await updateJob(root, id, { status: 'rejected', stage: 'review', note: 'rejected' })
+      const started = startRejection(ctx, { root, job: { ...job, status: 'rejected' }, comment })
+      return json(res, started ? 202 : 409, { started })
+    }
+
+    if (JOB[2] === 'artifacts' && method === 'GET') {
+      const [sources, outline, gates] = await Promise.all([
+        readRunFile(root, id, 'sources.json'),
+        readRunFile(root, id, 'outline.json'),
+        readRunFile(root, id, 'gates.json'),
+      ])
+      return json(res, 200, { sources, outline, gates })
     }
   }
 

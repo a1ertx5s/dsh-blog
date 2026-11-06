@@ -73,6 +73,7 @@ export async function reviseJob(ctx, {
     article: updated,
     sources,
     editorial,
+    call,
   })
 
   return { article: updated, gates, comment: note }

@@ -5,6 +5,7 @@ import { api } from './api.js'
 import { ArticleDetail } from './ArticleDetail.jsx'
 import { ArticleList } from './ArticleList.jsx'
 import { Diagnostics } from './Diagnostics.jsx'
+import { Pipeline } from './Pipeline.jsx'
 import { registerLocale, t } from './i18n.js'
 
 function PanelIcon({ size = 18 }) {
@@ -71,16 +72,17 @@ function BlogPanel() {
           <span className="blog-kicker">dsh-blog</span>
           <nav className="blog-nav">
             <button type="button" className={view === 'posts' ? 'is-on' : ''} onClick={() => setView('posts')}>{t('文章')}</button>
+            <button type="button" className={view === 'pipeline' ? 'is-on' : ''} onClick={() => setView('pipeline')}>{t('生产')}</button>
             <button type="button" className={view === 'status' ? 'is-on' : ''} onClick={() => setView('status')}>{t('状态')}</button>
           </nav>
           <span className="blog-spacer" />
-          <button type="button" className="blog-button is-primary" onClick={() => setCreating(true)}>{t('新建')}</button>
+          {view === 'posts' ? <button type="button" className="blog-button is-primary" onClick={() => setCreating(true)}>{t('新建')}</button> : null}
         </div>
         <h1>{t('heading')}</h1>
         <p className="blog-lead">{t('lead')}</p>
       </header>
 
-      {creating ? (
+      {creating && view === 'posts' ? (
         <div className="blog-create">
           <input
             autoFocus
@@ -99,7 +101,9 @@ function BlogPanel() {
         </div>
       ) : null}
 
-      {view === 'status' ? <Diagnostics /> : (
+      {view === 'pipeline' ? (
+        <Pipeline onOpenArticle={(slug) => { setSelected(slug); setView('posts') }} />
+      ) : view === 'status' ? <Diagnostics /> : (
         <div className="blog-workspace">
           <ArticleList
             posts={posts}
