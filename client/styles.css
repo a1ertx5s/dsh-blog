@@ -1166,3 +1166,82 @@
 .blog-outline-item:hover {
   color: var(--dsw-alias-brand-primary);
 }
+
+/* ---- 全宽铺满 ---- */
+
+.blog-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.blog-head {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 14px 24px 0;
+}
+
+.blog-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+  padding: 0 24px 20px;
+}
+
+.blog-start {
+  flex: 1;
+  width: 100%;
+  padding: 40px 24px 24px;
+}
+
+.blog-workspace.is-three {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+  align-items: stretch;
+}
+
+.blog-workspace.is-three .blog-rail-left {
+  height: 100%;
+  max-height: none;
+}
+
+.blog-workspace.is-three .blog-main {
+  height: 100%;
+  min-width: 0;
+  overflow: auto;
+}
+
+.blog-workspace.is-three .blog-rail-right {
+  position: static;
+  height: 100%;
+}
+
+.blog-workspace.is-three .blog-chat {
+  height: 100%;
+}
+
+@media (max-width: 900px) {
+  .blog-workspace.is-three,
+  .blog-workspace.is-three.chat-closed {
+    display: block;
+    flex: none;
+    height: auto;
+  }
+
+  .blog-workspace.is-three .blog-rail-left,
+  .blog-workspace.is-three .blog-rail-right {
+    height: auto;
+  }
+
+  .blog-page {
+    padding: 0 14px 20px;
+  }
+}
