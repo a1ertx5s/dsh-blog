@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M1-4 渲染效果</title>
+<style>
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+body {
+  max-width: 760px; margin: 56px auto; padding: 0 24px;
+  font: 16px/1.8 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  color: #1f2328; background: #fff;
+}
+h1 { font-size: 2rem; line-height: 1.3; margin: 0 0 24px; }
+h2 { font-size: 1.4rem; margin: 40px 0 12px; }
+h3 { font-size: 1.15rem; margin: 28px 0 10px; }
+p { margin: 0 0 16px; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+ul, ol { padding-left: 1.5em; margin: 0 0 16px; }
+li { margin: 4px 0; }
+blockquote { margin: 0 0 20px; padding: 2px 0 2px 16px; border-left: 3px solid #d0d7de; color: #57606a; }
+hr { border: 0; border-top: 1px solid #d8dee4; margin: 32px 0; }
+pre { background: #f6f8fa; border-radius: 8px; padding: 16px; overflow: auto; margin: 0 0 20px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+p code, li code { background: #f6f8fa; padding: 2px 5px; border-radius: 4px; }
+table { border-collapse: collapse; width: 100%; margin: 0 0 20px; }
+th, td { border: 1px solid #d0d7de; padding: 8px 12px; text-align: left; }
+th { background: #f6f8fa; }
+img { max-width: 100%; }
+@media (prefers-color-scheme: dark) {
+  body { color: #e6edf3; background: #0d1117; }
+  a { color: #58a6ff; }
+  blockquote { border-color: #30363d; color: #8b949e; }
+  hr, th, td { border-color: #30363d; }
+  pre, p code, li code, th { background: #161b22; }
+}
+</style>
+</head>
+<body>
+<p style="font-size:13px;color:#8b949e;margin-bottom:28px">M1-4 渲染器输出预览 · 不是最终站点主题</p>
+<h1>用 Agent 做内容工厂</h1>
+<p>这是一段<strong>正文</strong>，带 <code>inline code</code>、一个<a href="https://example.com" target="_blank" rel="noopener noreferrer">外链</a>，还有一条分隔线。</p>
+<hr />
+<h2>为什么需要门禁</h2>
+<ul>
+<li>引用必须可点</li>
+<li>与历史文章查重</li>
+<li>评分低于阈值自动打回</li>
+</ul>
+<blockquote>
+<p>工厂不是让 AI 自由发挥，而是把每一步变成可重试的工位。</p>
+</blockquote>
+<h3>代码</h3>
+<pre><code class="language-js">const article = await writeArticle(root, slug, { data, body })
+if (article.version) console.log('saved', article.version)
+</code></pre>
+<h3>表格</h3>
+<table>
+<thead>
+<tr>
+<th>检查</th>
+<th>通过标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>引用覆盖</td>
+<td>每个事实段至少一个 [n]</td>
+</tr>
+<tr>
+<td>事实核查</td>
+<td>不支持 ≤ 2 条</td>
+</tr>
+</tbody>
+</table>
+<h3>安全测试</h3>
+<p>下面这行脚本会被转义成文本，不会执行：</p>
+<p>&lt;script&gt;alert(‘xss’)&lt;/script&gt;</p>
+<p>[这个链接不会变成可点的](javascript:alert(1))</p>
+
+</body>
+</html>

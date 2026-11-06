@@ -36,6 +36,18 @@ export function requestRejection(ctx, req) {
   return connection.requestRejection({ headers: req.headers })
 }
 
+/** 读原始二进制请求体，带大小上限。 */
+export async function readBuffer(req, limit = 10 * 1024 * 1024) {
+  const chunks = []
+  let size = 0
+  for await (const chunk of req) {
+    size += chunk.length
+    if (size > limit) throw Object.assign(new Error('请求体太大'), { status: 413 })
+    chunks.push(chunk)
+  }
+  return Buffer.concat(chunks)
+}
+
 /** 读 JSON 请求体，带大小上限；错误带 status，交给路由统一返回。 */
 export async function readJson(req, limit = 1_000_000) {
   const chunks = []

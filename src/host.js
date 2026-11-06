@@ -1,6 +1,7 @@
 // dsh-blog host 半片：/blog/* 路由与鉴权。
 import { createArticle, listArticles, readArticle, writeArticle } from './article.js'
-import { json, readJson, requestPath, requestRejection, sameSite } from './http.js'
+import { json, readBuffer, readJson, requestPath, requestRejection, sameSite } from './http.js'
+import { MAX_IMAGE_BYTES, readImage, saveImage } from './images.js'
 import { runProbe, serviceStatus } from './probe.js'
 import { renderMarkdown } from './render.js'
 import { ensureBlogRoot, inspectBlogRoot, resolveBlogRoot } from './root.js'
@@ -26,7 +27,7 @@ async function handle(ctx, req, res, root) {
       ok: true,
       plugin: name,
       version: VERSION,
-      stage: 'M1-4',
+      stage: 'M1-5',
       services: serviceStatus(ctx),
     })
   }
@@ -38,6 +39,28 @@ async function handle(ctx, req, res, root) {
   if (method === 'POST' && path === 'render') {
     const { markdown } = await readJson(req)
     return json(res, 200, { html: renderMarkdown(markdown) })
+  }
+
+  if (method === 'POST' && path === 'upload') {
+    const buffer = await readBuffer(req, MAX_IMAGE_BYTES)
+    return json(res, 201, await saveImage(root, buffer))
+  }
+
+  const IMAGE = /^images\/([^/]+)$/.exec(path)
+  if (method === 'GET' && IMAGE) {
+    let name
+    try {
+      name = decodeURIComponent(IMAGE[1])
+    } catch {
+      return json(res, 400, { error: '图片名无效' })
+    }
+    const found = await readImage(root, name)
+    if (!found) return json(res, 404, { error: '图片不存在' })
+    res.statusCode = 200
+    res.setHeader('content-type', found.mime)
+    res.setHeader('cache-control', 'private, max-age=31536000, immutable')
+    res.end(found.buffer)
+    return
   }
 
   if (path === 'posts') {
