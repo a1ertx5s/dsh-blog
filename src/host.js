@@ -79,6 +79,19 @@ async function handle(ctx, req, res, root) {
     return json(res, 201, await saveImage(root, buffer))
   }
 
+  if (method === 'POST' && path === 'start') {
+    const body = await readJson(req)
+    const brief = String(body.brief ?? '').trim()
+    if (!brief) return json(res, 400, { error: 'brief 不能为空' })
+    if (body.mode === 'blank') {
+      const article = await createArticle(root, { title: brief.slice(0, 30) })
+      return json(res, 201, { article })
+    }
+    const job = await createJob(root, { brief })
+    startPipeline(ctx, { root, job })
+    return json(res, 202, { job })
+  }
+
   if (method === 'POST' && path === 'queue/run') {
     const body = await readJson(req).catch(() => ({}))
     const started = startQueue(ctx, { root, ids: body.ids })

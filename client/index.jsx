@@ -1,4 +1,4 @@
-// dsh-blog 浏览器半片：主面板与侧栏入口。
+// dsh-blog 浏览器半片：起笔 / 落墨 / 阅卷 / 立规。
 import React from 'react'
 import css from './styles.css'
 import { api } from './api.js'
@@ -6,6 +6,7 @@ import { ArticleDetail } from './ArticleDetail.jsx'
 import { ArticleList } from './ArticleList.jsx'
 import { Diagnostics } from './Diagnostics.jsx'
 import { Pipeline } from './Pipeline.jsx'
+import { StartPage } from './StartPage.jsx'
 import { registerLocale, t } from './i18n.js'
 
 function PanelIcon({ size = 18 }) {
@@ -17,8 +18,15 @@ function PanelIcon({ size = 18 }) {
   )
 }
 
-function BlogPanel() {
-  const [view, setView] = React.useState('posts')
+const TABS = [
+  ['start', '起笔'],
+  ['write', '落墨'],
+  ['site', '阅卷'],
+  ['settings', '立规'],
+]
+
+function BlogPanel({ target, onConsumed }) {
+  const [view, setView] = React.useState('articles')
   const [posts, setPosts] = React.useState([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState('')
@@ -27,6 +35,7 @@ function BlogPanel() {
   const [newTitle, setNewTitle] = React.useState('')
   const [busy, setBusy] = React.useState(false)
   const [importing, setImporting] = React.useState(false)
+  const [job, setJob] = React.useState(null)
   const importRef = React.useRef(null)
 
   const load = React.useCallback(async () => {
@@ -43,6 +52,47 @@ function BlogPanel() {
   }, [])
 
   React.useEffect(() => { load() }, [load])
+
+  React.useEffect(() => {
+    if (!target) return
+    if (target.topics) setView('factory')
+    if (target.slug) {
+      setView('articles')
+      setSelected(target.slug)
+    }
+    if (target.jobId) {
+      setView('articles')
+      setJob({ id: target.jobId, status: 'queued' })
+    }
+    onConsumed?.()
+  }, [target, onConsumed])
+
+  React.useEffect(() => {
+    if (!job?.id) return undefined
+    let alive = true
+    const tick = async () => {
+      try {
+        const next = await api(`/jobs/${job.id}`)
+        if (!alive) return
+        setJob(next)
+        if (next.slug) {
+          setSelected(next.slug)
+          await load()
+        }
+        if (['review', 'approved', 'published', 'failed', 'cancelled'].includes(next.status) || next.slug) {
+          setJob((prev) => ({ ...prev, done: true }))
+        }
+      } catch (err) {
+        if (alive) setError(err.message)
+      }
+    }
+    tick()
+    const timer = setInterval(tick, 3000)
+    return () => {
+      alive = false
+      clearInterval(timer)
+    }
+  }, [job?.id, load])
 
   async function create() {
     const title = newTitle.trim()
@@ -82,8 +132,27 @@ function BlogPanel() {
   }
 
   return (
-    <div className="blog-root">
-      <style>{css}</style>
+    <section className="blog-page">
+      <div className="blog-page-head">
+        <h1>{t('落墨')}</h1>
+        <div className="blog-page-actions">
+          <button type="button" className="blog-button" onClick={() => setView('articles')} aria-pressed={view === 'articles'}>
+            {t('文章')}
+          </button>
+          <button type="button" className="blog-button" onClick={() => setView('factory')} aria-pressed={view === 'factory'}>
+            {t('生产')}
+          </button>
+          {view === 'articles' ? (
+            <>
+              <button type="button" className="blog-button" onClick={() => importRef.current?.click()} disabled={importing}>
+                {importing ? t('导入中…') : t('导入')}
+              </button>
+              <button type="button" className="blog-button is-primary" onClick={() => setCreating(true)}>{t('新建')}</button>
+            </>
+          ) : null}
+        </div>
+      </div>
+
       <input
         ref={importRef}
         type="file"
@@ -94,29 +163,15 @@ function BlogPanel() {
           event.target.value = ''
         }}
       />
-      <header className="blog-head">
-        <div className="blog-head-top">
-          <span className="blog-kicker">dsh-blog</span>
-          <nav className="blog-nav">
-            <button type="button" className={view === 'posts' ? 'is-on' : ''} onClick={() => setView('posts')}>{t('文章')}</button>
-            <button type="button" className={view === 'pipeline' ? 'is-on' : ''} onClick={() => setView('pipeline')}>{t('生产')}</button>
-            <button type="button" className={view === 'status' ? 'is-on' : ''} onClick={() => setView('status')}>{t('状态')}</button>
-          </nav>
-          <span className="blog-spacer" />
-          {view === 'posts' ? (
-            <>
-              <button type="button" className="blog-button" onClick={() => importRef.current?.click()} disabled={importing}>
-                {importing ? t('导入中…') : t('导入')}
-              </button>
-              <button type="button" className="blog-button is-primary" onClick={() => setCreating(true)}>{t('新建')}</button>
-            </>
-          ) : null}
-        </div>
-        <h1>{t('heading')}</h1>
-        <p className="blog-lead">{t('lead')}</p>
-      </header>
 
-      {creating && view === 'posts' ? (
+      {job && !job.done ? (
+        <p className="blog-note">
+          {t('正在生成')}：{job.title || job.brief || job.id} · {job.status}/{job.stage}
+        </p>
+      ) : null}
+      {job?.error ? <p className="blog-note is-error">{job.error}</p> : null}
+
+      {creating && view === 'articles' ? (
         <div className="blog-create">
           <input
             autoFocus
@@ -135,9 +190,9 @@ function BlogPanel() {
         </div>
       ) : null}
 
-      {view === 'pipeline' ? (
-        <Pipeline onOpenArticle={(slug) => { setSelected(slug); setView('posts') }} />
-      ) : view === 'status' ? <Diagnostics /> : (
+      {view === 'factory' ? (
+        <Pipeline onOpenArticle={(slug) => { setView('articles'); setSelected(slug) }} />
+      ) : (
         <div className="blog-workspace">
           <ArticleList
             posts={posts}
@@ -151,18 +206,60 @@ function BlogPanel() {
               <ArticleDetail key={selected} slug={selected} onSaved={load} />
             ) : (
               <div className="blog-empty">
-                <p>{posts.length ? t('从左侧选一篇文章。') : t('还没有文章。先新建一篇，或去生产页跑一篇。')}</p>
-                {!posts.length ? (
-                  <div className="blog-job-actions">
-                    <button type="button" className="blog-button is-primary" onClick={() => setCreating(true)}>{t('新建文章')}</button>
-                    <button type="button" className="blog-button" onClick={() => setView('pipeline')}>{t('去生产')}</button>
-                  </div>
-                ) : null}
+                <p>{posts.length ? t('从左侧选一篇文章。') : t('还没有文章。回到起笔写一篇。')}</p>
               </div>
             )}
           </main>
         </div>
       )}
+    </section>
+  )
+}
+
+function Placeholder({ title, text }) {
+  return (
+    <section className="blog-page">
+      <div className="blog-page-head"><h1>{title}</h1></div>
+      <p className="blog-muted">{text}</p>
+    </section>
+  )
+}
+
+function BlogShell() {
+  const [tab, setTab] = React.useState('start')
+  const [target, setTarget] = React.useState(null)
+
+  function started(next) {
+    setTarget(next)
+    setTab('write')
+  }
+
+  return (
+    <div className="blog-root">
+      <style>{css}</style>
+      <header className="blog-head">
+        <div className="blog-head-top">
+          <span className="blog-kicker">dsh-blog</span>
+          <nav className="blog-nav">
+            {TABS.map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                className={tab === key ? 'is-on' : ''}
+                onClick={() => setTab(key)}
+              >
+                {t(label)}
+              </button>
+            ))}
+          </nav>
+          <span className="blog-spacer" />
+        </div>
+      </header>
+
+      {tab === 'start' ? <StartPage onStarted={started} /> : null}
+      {tab === 'write' ? <BlogPanel target={target} onConsumed={() => setTarget(null)} /> : null}
+      {tab === 'site' ? <Placeholder title={t('阅卷')} text={t('整站预览与发布历史，下一步接入。')} /> : null}
+      {tab === 'settings' ? <Placeholder title={t('立规')} text={t('站点、部署与诊断，下一步接入。')} /> : null}
     </div>
   )
 }
@@ -174,7 +271,7 @@ export function apply(ctx) {
 
   ctx.slots.inject('main', () => ctx.slots.register(
     { name: 'main', key: 'blog' },
-    BlogPanel,
+    BlogShell,
   ))
 
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
