@@ -10,6 +10,7 @@ import { MAX_IMAGE_BYTES, readImage, saveImage } from './images.js'
 import { cancelJob, createJob, listJobs, readJob, recoverJobs, retryJob, updateJob } from './jobs.js'
 import { isJobActive, startPipeline, startRejection } from './pipeline.js'
 import { readQueue, startQueue } from './queue.js'
+import { publishDue, startScheduler } from './schedule.js'
 import { runProbe, serviceStatus } from './probe.js'
 import { renderMarkdown } from './render.js'
 import { ensureBlogRoot, inspectBlogRoot, resolveBlogRoot } from './root.js'
@@ -79,6 +80,10 @@ async function handle(ctx, req, res, root) {
 
   if (method === 'GET' && path === 'queue') {
     return json(res, 200, await readQueue(root))
+  }
+
+  if (method === 'POST' && path === 'schedule/run') {
+    return json(res, 200, await publishDue(ctx, { root }))
   }
 
   if (path === 'jobs') {
@@ -270,6 +275,7 @@ export default {
   apply(ctx) {
     const root = resolveBlogRoot()
     recoverJobs(root).catch(() => {})
+    ctx.effect(() => startScheduler(ctx, root))
     ctx.effect(() => ctx.webServer.register({
       kind: 'prefix',
       path: PREFIX,

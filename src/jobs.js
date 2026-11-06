@@ -81,9 +81,15 @@ export async function listJobs(root) {
   return jobs.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
 }
 
-export async function createJob(root, { brief, title = '', slug = '' } = {}) {
+export async function createJob(root, { brief, title = '', slug = '', publishAt = null } = {}) {
   const text = typeof brief === 'string' ? brief.trim() : ''
   if (!text) throw Object.assign(new Error('brief 不能为空'), { status: 400 })
+  let scheduled = null
+  if (publishAt) {
+    const parsed = new Date(publishAt)
+    if (Number.isNaN(parsed.getTime())) throw Object.assign(new Error('publishAt 无效'), { status: 400 })
+    scheduled = parsed.toISOString()
+  }
   const at = new Date().toISOString()
   const job = {
     id: `job-${randomUUID()}`,
@@ -92,6 +98,7 @@ export async function createJob(root, { brief, title = '', slug = '' } = {}) {
     brief: text,
     title: typeof title === 'string' ? title.trim() : '',
     slug: typeof slug === 'string' ? slug.trim() : '',
+    publishAt: scheduled,
     status: 'queued',
     stage: 'research',
     attempts: {},
@@ -116,6 +123,11 @@ export async function updateJob(root, id, patch = {}) {
   }
   if (patch.stage && !JOB_STAGES.includes(patch.stage)) {
     throw Object.assign(new Error('阶段无效'), { status: 400 })
+  }
+  if (patch.publishAt !== undefined && patch.publishAt !== null) {
+    const parsed = new Date(patch.publishAt)
+    if (Number.isNaN(parsed.getTime())) throw Object.assign(new Error('publishAt 无效'), { status: 400 })
+    patch = { ...patch, publishAt: parsed.toISOString() }
   }
 
   const at = new Date().toISOString()

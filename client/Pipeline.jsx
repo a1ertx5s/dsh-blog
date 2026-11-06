@@ -63,6 +63,7 @@ export function Pipeline({ onOpenArticle }) {
   const [rejecting, setRejecting] = React.useState(null)
   const [comment, setComment] = React.useState('')
   const [queue, setQueue] = React.useState(null)
+  const [publishAt, setPublishAt] = React.useState('')
 
   const load = React.useCallback(async () => {
     try {
@@ -102,9 +103,17 @@ export function Pipeline({ onOpenArticle }) {
     if (!text) return
     setBusy('create')
     try {
-      await api('/jobs', { method: 'POST', body: { brief: text, title: title.trim() } })
+      await api('/jobs', {
+        method: 'POST',
+        body: {
+          brief: text,
+          title: title.trim(),
+          publishAt: publishAt ? new Date(publishAt).toISOString() : null,
+        },
+      })
       setBrief('')
       setTitle('')
+      setPublishAt('')
       await load()
     } catch (err) {
       setError(err.message)
@@ -167,6 +176,12 @@ export function Pipeline({ onOpenArticle }) {
 
       <div className="blog-job-create">
         <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={t('标题（可选）')} />
+        <input
+          type="datetime-local"
+          value={publishAt}
+          onChange={(event) => setPublishAt(event.target.value)}
+          aria-label={t('定时发布')}
+        />
         <textarea
           value={brief}
           onChange={(event) => setBrief(event.target.value)}
@@ -198,6 +213,7 @@ export function Pipeline({ onOpenArticle }) {
             <strong>{job.title || job.brief.slice(0, 40)}</strong>
             <span className={`blog-chip is-${job.status}`}>{STATUS[job.status] ?? job.status}</span>
             <span className="blog-job-stage">{STAGE[job.stage] ?? job.stage}</span>
+            {job.publishAt ? <span className="blog-job-stage">{t('定时')} {new Date(job.publishAt).toLocaleString()}</span> : null}
           </div>
           <p className="blog-job-brief">{job.brief}</p>
           {job.error ? <p className="blog-error">{job.error}</p> : null}
