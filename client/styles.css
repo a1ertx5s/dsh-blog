@@ -1311,3 +1311,81 @@
 .blog-section textarea:focus {
   border-color: var(--dsw-alias-brand-primary);
 }
+
+/* ---- 富文本编辑器 ---- */
+
+.blog-richtext {
+  min-height: 520px;
+  padding: 18px 20px 28px;
+}
+
+.blog-richtext .ProseMirror {
+  min-height: 480px;
+  outline: none;
+  font-size: 15px;
+  line-height: 1.85;
+  color: var(--dsw-alias-label-primary);
+}
+
+.blog-richtext .ProseMirror p {
+  margin: 0 0 1em;
+}
+
+.blog-richtext .ProseMirror h1,
+.blog-richtext .ProseMirror h2,
+.blog-richtext .ProseMirror h3 {
+  line-height: 1.35;
+  margin: 1.2em 0 0.5em;
+}
+
+.blog-richtext .ProseMirror h1 { font-size: 26px; }
+.blog-richtext .ProseMirror h2 { font-size: 20px; }
+.blog-richtext .ProseMirror h3 { font-size: 17px; }
+
+.blog-richtext .ProseMirror ul,
+.blog-richtext .ProseMirror ol {
+  padding-left: 1.4em;
+  margin: 0 0 1em;
+}
+
+.blog-richtext .ProseMirror blockquote {
+  margin: 0 0 1em;
+  padding-left: 14px;
+  border-left: 3px solid var(--dsw-alias-border-l2);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.blog-richtext .ProseMirror pre {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2);
+  overflow: auto;
+  font-size: 13px;
+}
+
+.blog-richtext .ProseMirror code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+}
+
+.blog-richtext .ProseMirror img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.blog-richtext .ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1em;
+}
+
+.blog-richtext .ProseMirror th,
+.blog-richtext .ProseMirror td {
+  border: 1px solid var(--dsw-alias-border-l1);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.blog-richtext .ProseMirror:focus {
+  outline: none;
+}

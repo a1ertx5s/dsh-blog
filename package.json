@@ -39,6 +39,7 @@
     "prepack": "npm run build"
   },
   "devDependencies": {
+    "@milkdown/kit": "^7.23.0",
     "esbuild": "^0.28.2"
   },
   "keywords": [
