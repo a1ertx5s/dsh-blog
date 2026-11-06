@@ -36,6 +36,9 @@ function BlogPanel({ target, onConsumed }) {
   const [busy, setBusy] = React.useState(false)
   const [importing, setImporting] = React.useState(false)
   const [job, setJob] = React.useState(null)
+  const [chatOpen, setChatOpen] = React.useState(true)
+  const [leftOpen, setLeftOpen] = React.useState(false)
+  const [outline, setOutline] = React.useState([])
   const importRef = React.useRef(null)
 
   const load = React.useCallback(async () => {
@@ -66,6 +69,22 @@ function BlogPanel({ target, onConsumed }) {
     }
     onConsumed?.()
   }, [target, onConsumed])
+
+  React.useEffect(() => {
+    if (!selected) {
+      setOutline([])
+      return undefined
+    }
+    let alive = true
+    api(`/posts/${encodeURIComponent(selected)}`)
+      .then((article) => {
+        if (!alive) return
+        const heads = String(article.body || '').match(/^##\s+(.+)$/gm) || []
+        setOutline(heads.map((line) => line.replace(/^##\s+/, '').trim()))
+      })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [selected])
 
   React.useEffect(() => {
     if (!job?.id) return undefined
@@ -144,6 +163,12 @@ function BlogPanel({ target, onConsumed }) {
           </button>
           {view === 'articles' ? (
             <>
+              <button type="button" className="blog-button blog-only-narrow" onClick={() => setLeftOpen((value) => !value)}>
+                {t('目录')}
+              </button>
+              <button type="button" className="blog-button" onClick={() => setChatOpen((value) => !value)} aria-pressed={chatOpen}>
+                {chatOpen ? t('收起 AI') : t('AI')}
+              </button>
               <button type="button" className="blog-button" onClick={() => importRef.current?.click()} disabled={importing}>
                 {importing ? t('导入中…') : t('导入')}
               </button>
@@ -193,14 +218,26 @@ function BlogPanel({ target, onConsumed }) {
       {view === 'factory' ? (
         <Pipeline onOpenArticle={(slug) => { setView('articles'); setSelected(slug) }} />
       ) : (
-        <div className="blog-workspace">
-          <ArticleList
-            posts={posts}
-            loading={loading}
-            error={error}
-            selected={selected}
-            onSelect={setSelected}
-          />
+        <div className={`blog-workspace is-three ${chatOpen ? '' : 'chat-closed'} ${leftOpen ? 'left-open' : ''}`}>
+          <aside className="blog-rail-left">
+            <ArticleList
+              posts={posts}
+              loading={loading}
+              error={error}
+              selected={selected}
+              onSelect={(slug) => {
+                setSelected(slug)
+                setLeftOpen(false)
+              }}
+            />
+            <nav className="blog-outline">
+              <div className="blog-outline-head">{t('本文大纲')}</div>
+              {outline.length ? outline.map((heading, index) => (
+                <div className="blog-outline-item" key={`${heading}-${index}`}>{heading}</div>
+              )) : <p className="blog-muted">{t('还没有小节')}</p>}
+            </nav>
+          </aside>
+
           <main className="blog-main">
             {selected ? (
               <ArticleDetail key={selected} slug={selected} onSaved={load} />
@@ -210,6 +247,24 @@ function BlogPanel({ target, onConsumed }) {
               </div>
             )}
           </main>
+
+          {chatOpen ? (
+            <aside className="blog-rail-right">
+              <div className="blog-chat">
+                <div className="blog-chat-head">
+                  <span>{t('AI 对话')}</span>
+                  <button type="button" className="blog-link" onClick={() => setChatOpen(false)}>{t('收起')}</button>
+                </div>
+                <div className="blog-chat-body">
+                  <p className="blog-muted">{t('AI 对话下一步接入。这里会显示消息与修改提案。')}</p>
+                </div>
+                <div className="blog-chat-input">
+                  <textarea rows={3} disabled placeholder={t('下一步接入…')} />
+                  <button type="button" className="blog-button" disabled>{t('发送')}</button>
+                </div>
+              </div>
+            </aside>
+          ) : null}
         </div>
       )}
     </section>
