@@ -1,5 +1,6 @@
 // dsh-blog host 半片：/blog/* 路由与鉴权。
-import { json, requestPath, requestRejection, sameSite } from './http.js'
+import { createArticle, listArticles, readArticle, writeArticle } from './article.js'
+import { json, readJson, requestPath, requestRejection, sameSite } from './http.js'
 import { runProbe, serviceStatus } from './probe.js'
 import { ensureBlogRoot, inspectBlogRoot, resolveBlogRoot } from './root.js'
 
@@ -8,35 +9,51 @@ export const inject = ['webServer', 'connection']
 
 const PREFIX = '/blog'
 const VERSION = '0.1.0'
+const POST = /^posts\/([^/]+)$/
 
-async function handle(ctx, req, res) {
+async function handle(ctx, req, res, root) {
   const rejection = requestRejection(ctx, req)
   if (rejection) return json(res, rejection, { error: '未授权' })
   if (!sameSite(req)) return json(res, 403, { error: '拒绝跨站请求' })
 
   const path = requestPath(req, PREFIX)
   if (path === null) return json(res, 404, { error: '接口不存在' })
+  const method = req.method || 'GET'
 
-  if (req.method === 'GET' && path === 'state') {
+  if (method === 'GET' && path === 'state') {
     return json(res, 200, {
       ok: true,
       plugin: name,
       version: VERSION,
-      stage: 'M0-5',
+      stage: 'M1-3',
       services: serviceStatus(ctx),
     })
   }
 
-  if (req.method === 'GET' && path === 'root') {
-    return json(res, 200, await inspectBlogRoot(resolveBlogRoot()))
+  if (method === 'GET' && path === 'root') return json(res, 200, await inspectBlogRoot(root))
+  if (method === 'POST' && path === 'root/init') return json(res, 200, await ensureBlogRoot(root))
+  if (method === 'POST' && path === 'probe') return json(res, 200, await runProbe(ctx))
+
+  if (path === 'posts') {
+    if (method === 'GET') return json(res, 200, { posts: await listArticles(root) })
+    if (method === 'POST') return json(res, 201, await createArticle(root, await readJson(req)))
   }
 
-  if (req.method === 'POST' && path === 'root/init') {
-    return json(res, 200, await ensureBlogRoot(resolveBlogRoot()))
-  }
+  const match = POST.exec(path)
+  if (match) {
+    let slug
+    try {
+      slug = decodeURIComponent(match[1])
+    } catch {
+      return json(res, 400, { error: 'slug 无效' })
+    }
 
-  if (req.method === 'POST' && path === 'probe') {
-    return json(res, 200, await runProbe(ctx))
+    if (method === 'GET') {
+      const article = await readArticle(root, slug)
+      return article ? json(res, 200, article) : json(res, 404, { error: '文章不存在' })
+    }
+
+    if (method === 'PUT') return json(res, 200, await writeArticle(root, slug, await readJson(req)))
   }
 
   return json(res, 404, { error: '接口不存在' })
@@ -45,15 +62,19 @@ async function handle(ctx, req, res) {
 export default {
   inject,
   apply(ctx) {
+    const root = resolveBlogRoot()
     ctx.effect(() => ctx.webServer.register({
       kind: 'prefix',
       path: PREFIX,
       handler: async (req, res) => {
         try {
-          await handle(ctx, req, res)
+          await handle(ctx, req, res, root)
         } catch (err) {
           if (res.headersSent) return res.end()
-          json(res, 500, { error: err?.message || '服务器错误' })
+          json(res, err?.status || 500, {
+            error: err?.message || '服务器错误',
+            ...(err?.version ? { version: err.version } : {}),
+          })
         }
       },
     }), 'dsh-blog: /blog routes')

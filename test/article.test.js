@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
+  createArticle,
   formatDate,
   isSafeSlug,
   listArticles,
@@ -13,6 +14,7 @@ import {
   slugify,
   stringifyArticle,
   uniqueSlug,
+  writeArticle,
 } from '../src/article.js'
 
 test('parseArticle reads frontmatter and body', () => {
@@ -107,3 +109,50 @@ test('readArticle returns null for missing or unsafe slugs', async () => {
     await rm(root, { recursive: true, force: true })
   }
 })
+
+test('writeArticle creates a file and returns a version', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-blog-write-'))
+  try {
+    const written = await writeArticle(root, 'hello', { data: { title: 'Hello' }, body: '正文\n' })
+    assert.equal(written.slug, 'hello')
+    assert.ok(written.version)
+
+    const read = await readArticle(root, 'hello')
+    assert.equal(read.body, '正文\n')
+    assert.equal(read.data.title, 'Hello')
+    assert.equal(read.version, written.version)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('writeArticle rejects a stale version with 409', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-blog-conflict-'))
+  try {
+    const first = await writeArticle(root, 'conflict', { data: { title: 'A' }, body: '1' })
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    await writeArticle(root, 'conflict', { data: { title: 'B' }, body: '2' })
+
+    await assert.rejects(
+      writeArticle(root, 'conflict', { data: { title: 'C' }, body: '3', version: first.version }),
+      (err) => err.status === 409,
+    )
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('createArticle dedupes slugs', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-blog-create-'))
+  try {
+    const first = await createArticle(root, { title: '同一个 标题' })
+    const second = await createArticle(root, { title: '同一个 标题' })
+    assert.notEqual(first.slug, second.slug)
+
+    const posts = await listArticles(root)
+    assert.equal(posts.length, 2)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
