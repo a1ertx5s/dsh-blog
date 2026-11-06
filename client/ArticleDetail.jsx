@@ -1,7 +1,7 @@
 import React from 'react'
 import { api } from './api.js'
 import { t } from './i18n.js'
-import { assembleSections, splitSections } from './sections.js'
+import { MarkdownEditor } from './MarkdownEditor.jsx'
 
 const STATUSES = ['draft', 'review', 'published']
 const STATUS_LABEL = { draft: '草稿', review: '待审', published: '已发布' }
@@ -33,7 +33,7 @@ export function ArticleDetail({ slug, onSaved, focus = null }) {
   const [article, setArticle] = React.useState(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState('')
-  const [tab, setTab] = React.useState('sections')
+  const [tab, setTab] = React.useState('richtext')
   const [title, setTitle] = React.useState('')
   const [status, setStatus] = React.useState('draft')
   const [tags, setTags] = React.useState('')
@@ -51,7 +51,6 @@ export function ArticleDetail({ slug, onSaved, focus = null }) {
   const [selectedVersion, setSelectedVersion] = React.useState(null)
   const [diff, setDiff] = React.useState([])
   const [versionBusy, setVersionBusy] = React.useState(false)
-  const [sections, setSections] = React.useState([])
   const [previewInfo, setPreviewInfo] = React.useState(null)
   const [previewPage, setPreviewPage] = React.useState('post')
   const [previewing, setPreviewing] = React.useState(false)
@@ -69,7 +68,6 @@ export function ArticleDetail({ slug, onSaved, focus = null }) {
     setDescription(data.data.description || '')
     setCover(data.data.cover || '')
     setBody(data.body || '')
-    setSections(splitSections(data.body || ''))
     setVersion(data.version || '')
     setConflict(false)
   }, [])
@@ -195,33 +193,6 @@ export function ArticleDetail({ slug, onSaved, focus = null }) {
     } finally {
       setVersionBusy(false)
     }
-  }
-
-  function applySections(next) {
-    setSections(next)
-    setBody(assembleSections(next))
-  }
-
-  function updateSection(index, patch) {
-    applySections(sections.map((section, cursor) => (cursor === index ? { ...section, ...patch } : section)))
-  }
-
-  function addSection() {
-    applySections([...sections, { heading: '新小节', text: '' }])
-  }
-
-  function removeSection(index) {
-    const next = sections.filter((_, cursor) => cursor !== index)
-    applySections(next.length ? next : [{ heading: null, text: '' }])
-  }
-
-  function moveSection(index, delta) {
-    const target = index + delta
-    if (target < 0 || target >= sections.length) return
-    const next = [...sections]
-    const [row] = next.splice(index, 1)
-    next.splice(target, 0, row)
-    applySections(next)
   }
 
   async function openPreview() {
@@ -380,7 +351,7 @@ export function ArticleDetail({ slug, onSaved, focus = null }) {
       <div className="blog-editor">
         <div className="blog-editor-bar">
           <div className="blog-tabs">
-            <button type="button" className={tab === 'sections' ? 'is-on' : ''} onClick={() => setTab('sections')}>{t('分节')}</button>
+            <button type="button" className={tab === 'richtext' ? 'is-on' : ''} onClick={() => setTab('richtext')}>{t('富文本')}</button>
             <button type="button" className={tab === 'preview' ? 'is-on' : ''} onClick={() => setTab('preview')}>{t('预览')}</button>
             <button type="button" className={tab === 'source' ? 'is-on' : ''} onClick={() => setTab('source')}>{t('源码')}</button>
             <button type="button" className={tab === 'versions' ? 'is-on' : ''} onClick={() => setTab('versions')}>{t('版本')}</button>
@@ -392,35 +363,8 @@ export function ArticleDetail({ slug, onSaved, focus = null }) {
             {uploading ? t('上传中…') : t('插入图片')}
           </button>
         </div>
-        {tab === 'sections' ? (
-          <div className="blog-sections">
-            {sections.map((section, index) => (
-              <div className="blog-section" key={index}>
-                <div className="blog-section-head">
-                  {section.heading === null ? (
-                    <span className="blog-section-intro">{t('开头')}</span>
-                  ) : (
-                    <input
-                      value={section.heading}
-                      onChange={(event) => updateSection(index, { heading: event.target.value })}
-                      placeholder={t('小节标题')}
-                    />
-                  )}
-                  <span className="blog-spacer" />
-                  <button type="button" className="blog-link" onClick={() => moveSection(index, -1)} disabled={index === 0}>↑</button>
-                  <button type="button" className="blog-link" onClick={() => moveSection(index, 1)} disabled={index === sections.length - 1}>↓</button>
-                  <button type="button" className="blog-link" onClick={() => removeSection(index)}>{t('删除')}</button>
-                </div>
-                <textarea
-                  value={section.text}
-                  onChange={(event) => updateSection(index, { text: event.target.value })}
-                  rows={Math.min(14, Math.max(4, section.text.split('\n').length + 1))}
-                  spellCheck={false}
-                />
-              </div>
-            ))}
-            <button type="button" className="blog-button" onClick={addSection}>+ {t('添加小节')}</button>
-          </div>
+        {tab === 'richtext' ? (
+          <MarkdownEditor value={body} onChange={setBody} />
         ) : tab === 'preview' ? (
           <div className="blog-preview" dangerouslySetInnerHTML={{ __html: preview }} />
         ) : tab === 'source' ? (
