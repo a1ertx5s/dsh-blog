@@ -15,16 +15,18 @@ export function Diagnostics() {
   const [state, setState] = React.useState(null)
   const [root, setRoot] = React.useState(null)
   const [probe, setProbe] = React.useState(null)
+  const [build, setBuild] = React.useState(null)
   const [error, setError] = React.useState('')
   const [busy, setBusy] = React.useState(false)
 
   React.useEffect(() => {
     let alive = true
-    Promise.all([api('/state'), api('/root')])
-      .then(([nextState, nextRoot]) => {
+    Promise.all([api('/state'), api('/root'), api('/build').catch(() => null)])
+      .then(([nextState, nextRoot, nextBuild]) => {
         if (!alive) return
         setState(nextState)
         setRoot(nextRoot)
+        setBuild(nextBuild)
       })
       .catch((err) => { if (alive) setError(err.message) })
     return () => { alive = false }
@@ -34,6 +36,18 @@ export function Diagnostics() {
     setBusy(true)
     try {
       setRoot(await api('/root/init', { method: 'POST' }))
+      setError('')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function buildSite() {
+    setBusy(true)
+    try {
+      setBuild(await api('/build', { method: 'POST' }))
       setError('')
     } catch (err) {
       setError(err.message)
@@ -77,6 +91,15 @@ export function Diagnostics() {
         {root && !root.initialized ? (
           <button type="button" className="blog-button" onClick={init} disabled={busy}>{t('初始化目录')}</button>
         ) : null}
+      </div>
+
+      <div className="blog-diag-card">
+        <h3>{t('站点构建')}</h3>
+        <button type="button" className="blog-button" onClick={buildSite} disabled={busy}>
+          {busy ? t('构建中…') : t('构建站点')}
+        </button>
+        {build ? <p>{t('已发布文章')}: {build.articles} · {build.at}</p> : null}
+        {build?.warnings?.length ? <p className="blog-error">{build.warnings.join('；')}</p> : null}
       </div>
 
       <div className="blog-diag-card">

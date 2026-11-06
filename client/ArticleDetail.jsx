@@ -22,6 +22,7 @@ export function ArticleDetail({ slug, onSaved }) {
   const [body, setBody] = React.useState('')
   const [version, setVersion] = React.useState('')
   const [saving, setSaving] = React.useState(false)
+  const [publishing, setPublishing] = React.useState(false)
   const [message, setMessage] = React.useState(null)
   const [conflict, setConflict] = React.useState(false)
   const [preview, setPreview] = React.useState('')
@@ -106,6 +107,21 @@ export function ArticleDetail({ slug, onSaved }) {
     }
   }
 
+  async function publish() {
+    setPublishing(true)
+    setMessage(null)
+    try {
+      const result = await api(`/posts/${encodeURIComponent(slug)}/publish`, { method: 'POST' })
+      applyArticle(result.article)
+      setMessage({ kind: 'ok', text: t('已发布并构建站点') })
+      onSaved?.()
+    } catch (err) {
+      setMessage({ kind: 'error', text: err.message })
+    } finally {
+      setPublishing(false)
+    }
+  }
+
   async function upload(file, target) {
     if (!file) return
     setUploading(true)
@@ -164,6 +180,11 @@ export function ArticleDetail({ slug, onSaved }) {
         <button type="button" className="blog-button is-primary" onClick={save} disabled={saving}>
           {saving ? t('保存中…') : t('保存')}
         </button>
+        {status !== 'published' ? (
+          <button type="button" className="blog-button" onClick={publish} disabled={publishing}>
+            {publishing ? t('发布中…') : t('发布')}
+          </button>
+        ) : null}
       </header>
 
       {message ? (
