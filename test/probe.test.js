@@ -34,14 +34,16 @@ test('probeModel degrades without a model', async () => {
   assert.match(result.error, /模型/)
 })
 
-test('probeModel streams text through prepareCall', async () => {
+test('probeModel streams text through prepareCall with a session id', async () => {
+  let seen = null
   const ctx = fakeCtx({
     agentDefaultModel: { currentSelection: () => ({ provider: 'p', model: 'm' }) },
     llm: {
       async prepareCall() {
         return {
           config: {},
-          async *stream() {
+          async *stream(options) {
+            seen = options
             yield { type: 'text-delta', text: 'OK' }
             yield { type: 'finish', reason: { kind: 'stop' } }
           },
@@ -51,12 +53,27 @@ test('probeModel streams text through prepareCall', async () => {
   })
   const result = await probeModel(ctx)
   assert.deepEqual(result, { ok: true, model: 'm', text: 'OK' })
+  assert.equal(typeof seen.sessionId, 'string')
+  assert.ok(seen.sessionId.length > 10)
 })
 
 test('probeWeb degrades without the web service', async () => {
   const result = await probeWeb(fakeCtx({}))
   assert.equal(result.ok, false)
   assert.match(result.error, /web/)
+})
+
+test('probeWeb failure points at the DSH web search settings', async () => {
+  const ctx = fakeCtx({
+    web: {
+      async search() { throw new Error('401 Authentication Fails') },
+      fetch() {},
+    },
+  })
+  const result = await probeWeb(ctx)
+  assert.equal(result.ok, false)
+  assert.match(result.error, /401/)
+  assert.match(result.hint, /Web search/)
 })
 
 test('probeWeb summarizes sources', async () => {

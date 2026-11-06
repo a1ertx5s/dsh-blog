@@ -100,7 +100,7 @@ function useProbe() {
 
 function probeLine(label, result) {
   if (!result) return `${label}: -`
-  if (!result.ok) return `${label}: ${result.error || 'failed'}`
+  if (!result.ok) return `${label}: ${result.error || 'failed'}${result.hint ? `\n${result.hint}` : ''}`
   const detail = typeof result.count === 'number' ? String(result.count) : (result.text || 'OK')
   return `${label}: ${detail}`
 }

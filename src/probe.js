@@ -1,7 +1,10 @@
 // 服务探针：确认宿主当前版本里模型与联网能力是否真的可用。
 // 只读诊断，不写任何状态；失败返回 ok:false 而不是抛出。
+import { randomUUID } from 'node:crypto'
+
 const MODEL_TIMEOUT_MS = 30_000
 const WEB_TIMEOUT_MS = 20_000
+const WEB_HINT = 'Web 访问由 DSH 的 web search provider 提供；请到 设置 → 内置插件 → Web search 检查密钥与端点。'
 
 export function modelInfo(ctx) {
   try {
@@ -32,6 +35,9 @@ export async function probeModel(ctx) {
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS)
+  // 部分 provider 会把 sessionId 映射成路由头（例如 x-opencode-session）；
+  // 没有它，即使是探针也会被拒。
+  const sessionId = randomUUID()
   try {
     const call = await llm.prepareCall(
       { provider: info.provider, model: info.model, maxTokens: 16 },
@@ -41,6 +47,7 @@ export async function probeModel(ctx) {
     let text = ''
     for await (const chunk of call.stream({
       ...call.config,
+      sessionId,
       messages: [{ role: 'user', content: [{ type: 'text', text: '只回复 OK' }], source: { kind: 'dsh-blog-probe' } }],
       signal: controller.signal,
     })) {
@@ -75,7 +82,7 @@ export async function probeWeb(ctx, query = 'DeepSeek Harness') {
       })),
     }
   } catch (err) {
-    return { ok: false, error: err?.message || '搜索失败' }
+    return { ok: false, error: err?.message || '搜索失败', hint: WEB_HINT }
   } finally {
     clearTimeout(timer)
   }
