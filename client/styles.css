@@ -1131,3 +1131,26 @@
   border: 0;
   background: #fff;
 }
+
+/* ---- 内嵌站点预览 ---- */
+
+.blog-local-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.blog-local-inline .blog-local-toolbar {
+  border-bottom: 0;
+  padding: 0;
+}
+
+.blog-local-frame-inline {
+  width: 100%;
+  height: 64vh;
+  min-height: 420px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: var(--blog-radius-sm, 8px);
+  background: #fff;
+}
