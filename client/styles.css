@@ -774,3 +774,56 @@
   color: var(--dsw-alias-label-secondary);
   font-size: 12px;
 }
+
+.blog-versions {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  min-height: 240px;
+}
+
+.blog-version-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.blog-version-list button {
+  padding: 6px 8px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.blog-version-list button.is-on {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.blog-diff-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.blog-diff pre {
+  max-height: 420px;
+  overflow: auto;
+  margin: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2);
+  font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap;
+}
+
+.blog-diff .is-add { color: var(--dsw-alias-state-success-primary); }
+.blog-diff .is-del { color: var(--dsw-alias-state-error-primary); }
