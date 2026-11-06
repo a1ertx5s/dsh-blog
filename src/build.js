@@ -23,6 +23,10 @@ export function normalizeSite(raw = {}) {
     lang: raw.lang || 'zh-CN',
     theme: raw.theme || 'paper',
     nav: Array.isArray(raw.nav) ? raw.nav.filter((item) => item?.label && item?.href) : [],
+    budget: {
+      perArticleTokens: Number(raw.budget?.perArticleTokens) || 0,
+      monthlyTokens: Number(raw.budget?.monthlyTokens) || 0,
+    },
     deploy: {
       dir: raw.deploy?.dir || 'docs',
       branch: raw.deploy?.branch || 'main',

@@ -31,6 +31,7 @@ async function execute(ctx, { root, ids, deps, call, now = new Date() } = {}) {
     startedAt: now.toISOString(),
     total: targets.length,
     current: null,
+    paused: null,
     results: [],
   }
   await save(root, state)
@@ -43,7 +44,11 @@ async function execute(ctx, { root, ids, deps, call, now = new Date() } = {}) {
         await runPipeline(ctx, { root, job, deps, call })
         state.results.push({ id: job.id, ok: true })
       } catch (err) {
-        state.results.push({ id: job.id, ok: false, error: err.message })
+        state.results.push({ id: job.id, ok: false, error: err.message, code: err.code })
+        if (err.code === 'BUDGET_EXCEEDED') {
+          state.paused = 'budget'
+          break
+        }
       }
       await save(root, state)
     }

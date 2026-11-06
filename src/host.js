@@ -2,6 +2,7 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createArticle, listArticles, readArticle, writeArticle } from './article.js'
+import { budgetStatus } from './budget.js'
 import { buildSite, loadSite } from './build.js'
 import { checkSite } from './check.js'
 import { deploySite, readDeployStatus } from './deploy.js'
@@ -84,6 +85,15 @@ async function handle(ctx, req, res, root) {
 
   if (method === 'POST' && path === 'schedule/run') {
     return json(res, 200, await publishDue(ctx, { root }))
+  }
+
+  if (method === 'GET' && path === 'budget') {
+    const status = await budgetStatus(root)
+    const jobs = await listJobs(root)
+    return json(res, 200, {
+      ...status,
+      jobs: jobs.map((job) => ({ id: job.id, title: job.title, status: job.status, usage: job.usage })),
+    })
   }
 
   if (path === 'jobs') {
