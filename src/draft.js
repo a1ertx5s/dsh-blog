@@ -3,6 +3,7 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { stringifyArticle, listArticles, slugify, uniqueSlug, writeArticle } from './article.js'
 import { callModel } from './llm.js'
+import { languageInstruction, siteLanguage } from './language.js'
 
 export class DraftError extends Error {
   constructor(message, { code = 'DRAFT_ERROR' } = {}) {
@@ -102,6 +103,7 @@ export async function draftJob(ctx, {
 } = {}) {
   if (!outline?.sections?.length) throw new DraftError('缺少大纲，不能开始写')
   const editorial = await readEditorial(root)
+  const langLine = languageInstruction(await siteLanguage(root))
   const written = []
   const sections = []
 
@@ -114,6 +116,7 @@ export async function draftJob(ctx, {
       editorial,
       writtenTail: written.length ? written[written.length - 1] : '',
     })
+    prompt.system = `${prompt.system}\n${langLine}`
     const result = await call(ctx, { ...prompt, maxTokens: 2400 })
     const text = cleanSection(result.text, section.heading)
     if (!text) throw new DraftError(`第 ${index + 1} 节没有产出内容`, { code: 'EMPTY_SECTION' })

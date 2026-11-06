@@ -213,6 +213,11 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 .empty{color:var(--muted)}
 .not-found{padding:60px 0;text-align:center}
 @media(max-width:640px){.site-header,.site-main,.site-footer{padding-left:18px;padding-right:18px}.post-header h1{font-size:26px}}
+hr{border:0;border-top:1px solid var(--border);margin:2em 0}
+figure{margin:1.4em 0}
+figcaption{color:var(--muted);font-size:13px;text-align:center;margin-top:6px}
+.prose a{text-decoration:underline;text-underline-offset:2px}
+@media print{.site-header,.site-footer,.post-back{display:none}body{color:#000;background:#fff}}
 `
 
 async function exists(path) {

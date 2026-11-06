@@ -117,7 +117,13 @@ function BlogPanel() {
               <ArticleDetail key={selected} slug={selected} onSaved={load} />
             ) : (
               <div className="blog-empty">
-                <p>{t('从左侧选一篇文章，或者新建一篇。')}</p>
+                <p>{posts.length ? t('从左侧选一篇文章。') : t('还没有文章。先新建一篇，或去生产页跑一篇。')}</p>
+                {!posts.length ? (
+                  <div className="blog-job-actions">
+                    <button type="button" className="blog-button is-primary" onClick={() => setCreating(true)}>{t('新建文章')}</button>
+                    <button type="button" className="blog-button" onClick={() => setView('pipeline')}>{t('去生产')}</button>
+                  </div>
+                ) : null}
               </div>
             )}
           </main>

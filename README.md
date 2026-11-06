@@ -61,6 +61,7 @@ gh api -X POST repos/<user>/<repo>/pages -f 'source[branch]=main' -f 'source[pat
 ## 文档
 
 - [开发计划](docs/DEVELOPMENT_PLAN.md)
+- [使用文档](docs/USAGE.md)
 - [GitHub Pages 配置](docs/GITHUB_PAGES.md)
 
 ## 开发
