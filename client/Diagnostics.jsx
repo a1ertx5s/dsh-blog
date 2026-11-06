@@ -16,17 +16,19 @@ export function Diagnostics() {
   const [root, setRoot] = React.useState(null)
   const [probe, setProbe] = React.useState(null)
   const [build, setBuild] = React.useState(null)
+  const [deploy, setDeploy] = React.useState(null)
   const [error, setError] = React.useState('')
   const [busy, setBusy] = React.useState(false)
 
   React.useEffect(() => {
     let alive = true
-    Promise.all([api('/state'), api('/root'), api('/build').catch(() => null)])
-      .then(([nextState, nextRoot, nextBuild]) => {
+    Promise.all([api('/state'), api('/root'), api('/build').catch(() => null), api('/deploy').catch(() => null)])
+      .then(([nextState, nextRoot, nextBuild, nextDeploy]) => {
         if (!alive) return
         setState(nextState)
         setRoot(nextRoot)
         setBuild(nextBuild)
+        setDeploy(nextDeploy)
       })
       .catch((err) => { if (alive) setError(err.message) })
     return () => { alive = false }
@@ -48,6 +50,20 @@ export function Diagnostics() {
     setBusy(true)
     try {
       setBuild(await api('/build', { method: 'POST' }))
+      setError('')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function deployNow() {
+    setBusy(true)
+    try {
+      const result = await api('/deploy', { method: 'POST' })
+      setDeploy(result)
+      setBuild(result.build || build)
       setError('')
     } catch (err) {
       setError(err.message)
@@ -100,6 +116,17 @@ export function Diagnostics() {
         </button>
         {build ? <p>{t('已发布文章')}: {build.articles} · {build.at}</p> : null}
         {build?.warnings?.length ? <p className="blog-error">{build.warnings.join('；')}</p> : null}
+        <button type="button" className="blog-button" onClick={deployNow} disabled={busy}>
+          {busy ? t('部署中…') : t('构建并部署')}
+        </button>
+        {deploy ? (
+          <p className={deploy.ok ? 'blog-note is-ok' : 'blog-note is-error'}>
+            {deploy.ok
+              ? `${deploy.skipped ? t('没有变更') : t('已部署')}${deploy.commit ? ` · ${deploy.commit}` : ''}${deploy.url ? ` · ${deploy.url}` : ''}`
+              : (deploy.error || t('部署失败'))}
+          </p>
+        ) : null}
+        {deploy?.warning ? <p className="blog-note">{deploy.warning}</p> : null}
       </div>
 
       <div className="blog-diag-card">
