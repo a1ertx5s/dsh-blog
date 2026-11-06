@@ -28,7 +28,7 @@ async function handle(ctx, req, res, root) {
       ok: true,
       plugin: name,
       version: VERSION,
-      stage: 'M2-2',
+      stage: 'M2-3',
       services: serviceStatus(ctx),
     })
   }
