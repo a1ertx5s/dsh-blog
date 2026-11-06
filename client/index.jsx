@@ -8,16 +8,22 @@ const DICT = {
     heading: '博客工作台',
     lead: 'AI 长文工厂：选题进，文章出，人只管审批。',
     mounted: '面板已挂载',
-    next: '下一步接入路由、内容模型与生产流水线。',
-    stage: 'M0-3',
+    next: '路由与鉴权已接入，下一步是内容模型。',
+    stage: 'M0-4',
+    routeChecking: '正在检查路由…',
+    routeOk: '路由已连通',
+    routeFail: '路由未连通',
   },
   en: {
     title: 'Blog',
     heading: 'Blog desk',
     lead: 'An AI long-form factory: topics in, articles out, humans only approve.',
     mounted: 'Panel mounted',
-    next: 'Next: routes, content model and the production pipeline.',
-    stage: 'M0-3',
+    next: 'Routes and auth are in. Next: the content model.',
+    stage: 'M0-4',
+    routeChecking: 'Checking routes…',
+    routeOk: 'Routes connected',
+    routeFail: 'Routes unavailable',
   },
 }
 
@@ -44,6 +50,24 @@ function registerLocale(ctx) {
   }
 }
 
+function useRouteState() {
+  const [route, setRoute] = React.useState({ status: 'loading' })
+  React.useEffect(() => {
+    let alive = true
+    fetch('/blog/state', { headers: { accept: 'application/json' } })
+      .then(async (res) => {
+        const body = await res.json().catch(() => ({}))
+        if (!alive) return
+        setRoute(res.ok ? { status: 'ok', body } : { status: 'error', code: res.status })
+      })
+      .catch((err) => {
+        if (alive) setRoute({ status: 'error', message: err?.message || '' })
+      })
+    return () => { alive = false }
+  }, [])
+  return route
+}
+
 function PanelIcon({ size = 18 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -54,6 +78,15 @@ function PanelIcon({ size = 18 }) {
 }
 
 function BlogPanel() {
+  const route = useRouteState()
+  const routeClass = route.status === 'ok'
+    ? 'blog-status is-ok'
+    : route.status === 'error' ? 'blog-status is-error' : 'blog-status'
+  const detail = route.code ? ` (${route.code})` : route.message ? ` (${route.message})` : ''
+  const routeText = route.status === 'loading'
+    ? t('routeChecking')
+    : route.status === 'ok' ? t('routeOk') : `${t('routeFail')}${detail}`
+
   return (
     <div className="blog-root">
       <style>{css}</style>
@@ -66,6 +99,7 @@ function BlogPanel() {
         <span className="blog-badge">{t('stage')}</span>
         <h2>{t('mounted')}</h2>
         <p>{t('next')}</p>
+        <p className={routeClass}>{routeText}</p>
       </section>
     </div>
   )
