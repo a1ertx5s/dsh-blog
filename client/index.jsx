@@ -7,6 +7,7 @@ import { ArticleList } from './ArticleList.jsx'
 import { Diagnostics } from './Diagnostics.jsx'
 import { Pipeline } from './Pipeline.jsx'
 import { StartPage } from './StartPage.jsx'
+import { ChatRail } from './ChatRail.jsx'
 import { registerLocale, t } from './i18n.js'
 
 function PanelIcon({ size = 18 }) {
@@ -258,19 +259,7 @@ function BlogPanel({ target, onConsumed }) {
 
           {chatOpen ? (
             <aside className="blog-rail-right">
-              <div className="blog-chat">
-                <div className="blog-chat-head">
-                  <span>{t('AI 对话')}</span>
-                  <button type="button" className="blog-link" onClick={() => setChatOpen(false)}>{t('收起')}</button>
-                </div>
-                <div className="blog-chat-body">
-                  <p className="blog-muted">{t('AI 对话下一步接入。这里会显示消息与修改提案。')}</p>
-                </div>
-                <div className="blog-chat-input">
-                  <textarea rows={3} disabled placeholder={t('下一步接入…')} />
-                  <button type="button" className="blog-button" disabled>{t('发送')}</button>
-                </div>
-              </div>
+              <ChatRail slug={selected} onCollapse={() => setChatOpen(false)} />
             </aside>
           ) : null}
         </div>

@@ -1389,3 +1389,25 @@
 .blog-richtext .ProseMirror:focus {
   outline: none;
 }
+
+.blog-chat-msg {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.blog-chat-msg.is-user {
+  background: var(--dsw-alias-bg-layer-2);
+  margin-left: 18px;
+}
+
+.blog-chat-msg.is-assistant {
+  margin-right: 18px;
+}
+
+.blog-chat-msg.is-error {
+  color: var(--dsw-alias-state-error-primary);
+}
