@@ -15,6 +15,7 @@ import { readQueue, startQueue } from './queue.js'
 import { publishDue, startScheduler } from './schedule.js'
 import { createJobsFromTopics, proposeTopics } from './topics.js'
 import { exportMarkdown, importMarkdown } from './transfer.js'
+import { buildPreview, readPreview } from './preview.js'
 import { listVersions, readVersion, restoreVersion } from './versions.js'
 import { runProbe, serviceStatus } from './probe.js'
 import { renderMarkdown } from './render.js'
@@ -28,6 +29,7 @@ const VERSION = '1.0.0'
 const POST = /^posts\/([^/]+)$/
 const PUBLISH = /^posts\/([^/]+)\/publish$/
 const EXPORT = /^posts\/([^/]+)\/export$/
+const PREVIEW = /^preview\/(pv-[a-z0-9-]+)(\/.*)?$/
 const VERSIONS = /^posts\/([^/]+)\/versions(?:\/([^/]+))?(?:\/(restore))?$/
 
 async function readRunFile(root, id, name) {
@@ -77,6 +79,19 @@ async function handle(ctx, req, res, root) {
   if (method === 'POST' && path === 'upload') {
     const buffer = await readBuffer(req, MAX_IMAGE_BYTES)
     return json(res, 201, await saveImage(root, buffer))
+  }
+
+  if (method === 'POST' && path === 'preview') {
+    const body = await readJson(req).catch(() => ({}))
+    return json(res, 200, await buildPreview(root, { slug: body.slug }))
+  }
+
+  const previewMatch = PREVIEW.exec(path)
+  if (previewMatch && method === 'GET') {
+    const file = await readPreview(root, previewMatch[1], previewMatch[2] || '')
+    if (!file) return json(res, 404, { error: '预览不存在' })
+    res.writeHead(200, { 'content-type': file.type, 'cache-control': 'no-store' })
+    return res.end(file.data)
   }
 
   if (method === 'POST' && path === 'start') {

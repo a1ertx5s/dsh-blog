@@ -237,12 +237,20 @@ export async function loadSite(root) {
   }
 }
 
-export async function buildSite(root, { now = new Date() } = {}) {
+export async function buildSite(root, {
+  now = new Date(),
+  outDir = null,
+  basePath = null,
+  include = [],
+  writeReport = true,
+} = {}) {
   const site = await loadSite(root)
+  if (basePath) site.basePath = normalizeBasePath(basePath)
   const warnings = []
   if (!site.url) warnings.push('site.url 为空：RSS 与 sitemap 使用相对链接，部分阅读器无法识别')
 
-  const listed = (await listArticles(root)).filter((post) => post.status === 'published')
+  const extra = new Set(include)
+  const listed = (await listArticles(root)).filter((post) => post.status === 'published' || extra.has(post.slug))
   const articles = []
   for (const post of listed) {
     const article = await readArticle(root, post.slug)
@@ -253,7 +261,8 @@ export async function buildSite(root, { now = new Date() } = {}) {
     articles.push({ ...post, ...article })
   }
 
-  const target = join(root, site.deploy.dir)
+  const target = outDir || join(root, site.deploy.dir)
+  await mkdir(dirname(target), { recursive: true })
   const temp = join(root, '.blog', `build-${process.pid}-${now.getTime()}`)
   await rm(temp, { recursive: true, force: true })
   await mkdir(join(temp, 'posts'), { recursive: true })
@@ -319,7 +328,7 @@ export async function buildSite(root, { now = new Date() } = {}) {
     files.push('images/')
   }
 
-  const backup = join(root, `.${site.deploy.dir}.old-${process.pid}-${now.getTime()}`)
+  const backup = `${target}.old-${process.pid}-${now.getTime()}`
   const hadTarget = await exists(target)
   if (hadTarget) await rename(target, backup)
   try {
@@ -330,21 +339,26 @@ export async function buildSite(root, { now = new Date() } = {}) {
   }
   if (hadTarget) await rm(backup, { recursive: true, force: true })
 
-  const checks = await checkSite(root, site)
-  if (!checks.ok) warnings.push(`自检发现 ${checks.issues.length} 个问题`)
+  let checks = null
+  if (!outDir) {
+    checks = await checkSite(root, site)
+    if (!checks.ok) warnings.push(`自检发现 ${checks.issues.length} 个问题`)
+  }
 
   const report = {
     schemaVersion: 1,
     at: now.toISOString(),
     ok: true,
-    dir: site.deploy.dir,
+    dir: outDir ? target : site.deploy.dir,
     articles: articles.length,
     files,
     warnings,
     checks,
     site: { title: site.title, url: site.url, basePath: site.basePath },
   }
-  await mkdir(join(root, '.blog'), { recursive: true })
-  await writeFile(join(root, '.blog', 'build.json'), `${JSON.stringify(report, null, 2)}\n`, 'utf8')
+  if (writeReport) {
+    await mkdir(join(root, '.blog'), { recursive: true })
+    await writeFile(join(root, '.blog', 'build.json'), `${JSON.stringify(report, null, 2)}\n`, 'utf8')
+  }
   return report
 }
