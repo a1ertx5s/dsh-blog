@@ -21,6 +21,7 @@ test('createJob validates the brief and persists the job', async () => {
 
     const job = await createJob(root, { brief: '写一篇关于 Agent 的长文', title: 'Agent' })
     assert.match(job.id, /^job-[a-f0-9-]{36}$/)
+    assert.equal(typeof job.sessionId, 'string')
     assert.equal(job.status, 'queued')
     assert.equal(job.stage, 'research')
 
