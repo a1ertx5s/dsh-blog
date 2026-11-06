@@ -87,6 +87,8 @@ export async function createJob(root, { brief, title = '', slug = '' } = {}) {
   const at = new Date().toISOString()
   const job = {
     id: `job-${randomUUID()}`,
+    // 每个 job 一个稳定 session id：provider 可能把它映射成路由头。
+    sessionId: randomUUID(),
     brief: text,
     title: typeof title === 'string' ? title.trim() : '',
     slug: typeof slug === 'string' ? slug.trim() : '',

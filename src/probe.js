@@ -1,99 +1,38 @@
 // 服务探针：确认宿主当前版本里模型与联网能力是否真的可用。
 // 只读诊断，不写任何状态；失败返回 ok:false 而不是抛出。
-import { randomUUID } from 'node:crypto'
+import { callModel, modelInfo, serviceStatus } from './llm.js'
+
+export { modelInfo, serviceStatus }
 
 const MODEL_TIMEOUT_MS = 30_000
 const WEB_TIMEOUT_MS = 20_000
 const WEB_HINT = 'Web 访问由 DSH 的 web search provider 提供；请到 设置 → 内置插件 → Web search 检查密钥与端点。'
 
-export function modelInfo(ctx) {
-  try {
-    const selection = ctx.get('agentDefaultModel')?.currentSelection()
-    const llm = ctx.get('llm')
-    if (!llm || !selection?.provider || !selection?.model) return null
-    return { provider: selection.provider, model: selection.model, label: selection.model }
-  } catch {
-    return null
-  }
-}
-
-export function serviceStatus(ctx) {
-  const model = modelInfo(ctx)
-  const web = ctx.get('web')
-  return {
-    model: model ? { provider: model.provider, model: model.model } : null,
-    llm: typeof ctx.get('llm')?.prepareCall === 'function',
-    web: Boolean(web && typeof web.search === 'function' && typeof web.fetch === 'function'),
-  }
-}
-
 export async function probeModel(ctx) {
-  const info = modelInfo(ctx)
-  if (!info) return { ok: false, error: '当前没有可用模型' }
-  const llm = ctx.get('llm')
-  if (typeof llm?.prepareCall !== 'function') return { ok: false, error: 'llm 服务不可用' }
-
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS)
-  // 部分 provider 会把 sessionId 映射成路由头（例如 x-opencode-session）；
-  // 没有它，即使是探针也会被拒。
-  const sessionId = randomUUID()
   try {
-    const call = await llm.prepareCall(
-      { provider: info.provider, model: info.model, maxTokens: 256 },
-      controller.signal,
-      (controls, model) => {
-        // 推理模型先选最低档，避免 16/256 个 token 全花在思考上。
-        const effort = model?.reasoning?.efforts?.[0]?.id
-        return effort === undefined ? controls : { ...controls, reasoningEffort: effort }
-      },
-    )
-    let text = ''
-    let finish = null
-    let usage = null
-    const chunkTypes = new Set()
-    for await (const chunk of call.stream({
-      ...call.config,
-      sessionId,
-      messages: [{ role: 'user', content: [{ type: 'text', text: '只回复 OK' }], source: { kind: 'dsh-blog-probe' } }],
-      signal: controller.signal,
-    })) {
-      chunkTypes.add(chunk.type)
-      if (chunk.type === 'text-delta') text += chunk.text
-      else if (chunk.type === 'block-end' && chunk.block?.type === 'text' && !text) text = chunk.block.text
-      else if (chunk.type === 'usage') usage = chunk.usage
-      else if (chunk.type === 'finish') {
-        finish = chunk.reason ?? null
-        if (finish && ['error', 'aborted'].includes(finish.kind)) {
-          throw new Error(finish.failure?.message || '模型调用失败')
-        }
-      }
-    }
-
-    if (!text.trim()) {
-      return {
-        ok: false,
-        error: `模型返回空文本（finish: ${finish?.kind ?? 'unknown'}）`,
-        provider: info.provider,
-        model: info.label,
-        finish: finish?.kind ?? null,
-        usage,
-        chunks: [...chunkTypes],
-      }
-    }
-
+    const result = await callModel(ctx, {
+      user: '只回复 OK',
+      maxTokens: 256,
+      timeoutMs: MODEL_TIMEOUT_MS,
+    })
     return {
       ok: true,
-      provider: info.provider,
-      model: info.label,
-      text: text.trim().slice(0, 40),
-      finish: finish?.kind ?? null,
-      usage,
+      provider: result.provider,
+      model: result.model,
+      text: result.text.trim().slice(0, 40),
+      finish: result.finish,
+      usage: result.usage,
     }
   } catch (err) {
-    return { ok: false, error: err?.message || '模型调用失败' }
-  } finally {
-    clearTimeout(timer)
+    const info = modelInfo(ctx)
+    return {
+      ok: false,
+      error: err?.message || '模型调用失败',
+      code: err?.code,
+      provider: info?.provider,
+      model: info?.label,
+      details: err?.details,
+    }
   }
 }
 
