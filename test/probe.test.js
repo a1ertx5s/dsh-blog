@@ -52,9 +52,33 @@ test('probeModel streams text through prepareCall with a session id', async () =
     },
   })
   const result = await probeModel(ctx)
-  assert.deepEqual(result, { ok: true, model: 'm', text: 'OK' })
+  assert.equal(result.ok, true)
+  assert.equal(result.model, 'm')
+  assert.equal(result.provider, 'p')
+  assert.equal(result.text, 'OK')
+  assert.equal(result.finish, 'stop')
   assert.equal(typeof seen.sessionId, 'string')
   assert.ok(seen.sessionId.length > 10)
+})
+
+test('probeModel reports empty text with the finish reason', async () => {
+  const ctx = fakeCtx({
+    agentDefaultModel: { currentSelection: () => ({ provider: 'p', model: 'm' }) },
+    llm: {
+      async prepareCall() {
+        return {
+          config: {},
+          async *stream() {
+            yield { type: 'finish', reason: { kind: 'max-tokens' } }
+          },
+        }
+      },
+    },
+  })
+  const result = await probeModel(ctx)
+  assert.equal(result.ok, false)
+  assert.match(result.error, /空文本/)
+  assert.match(result.error, /max-tokens/)
 })
 
 test('probeWeb degrades without the web service', async () => {

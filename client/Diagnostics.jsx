@@ -4,9 +4,11 @@ import { t } from './i18n.js'
 
 function probeLine(label, result) {
   if (!result) return `${label}: -`
-  if (!result.ok) return `${label}: ${result.error || 'failed'}`
-  const detail = typeof result.count === 'number' ? String(result.count) : (result.text || 'OK')
-  return `${label}: ${detail}`
+  if (!result.ok) return `${label}: ${result.error || 'failed'}${result.hint ? `\n${result.hint}` : ''}`
+  if (typeof result.count === 'number') return `${label}: ${result.count}`
+  const who = result.provider ? ` · ${result.provider}/${result.model}` : ''
+  const finish = result.finish ? ` (${result.finish})` : ''
+  return `${label}: ${result.text || 'OK'}${who}${finish}`
 }
 
 export function Diagnostics() {
