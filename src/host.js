@@ -17,6 +17,7 @@ import { createJobsFromTopics, proposeTopics } from './topics.js'
 import { exportMarkdown, importMarkdown } from './transfer.js'
 import { buildPreview, readPreview } from './preview.js'
 import { createSession, deleteSession, listSessions, readSession, sendMessage } from './chat.js'
+import { applyProposal, readProposal, rejectProposal } from './proposals.js'
 import { listVersions, readVersion, restoreVersion } from './versions.js'
 import { runProbe, serviceStatus } from './probe.js'
 import { renderMarkdown } from './render.js'
@@ -32,6 +33,7 @@ const PUBLISH = /^posts\/([^/]+)\/publish$/
 const EXPORT = /^posts\/([^/]+)\/export$/
 const PREVIEW = /^preview\/(pv-[a-z0-9-]+)(\/.*)?$/
 const CHAT = /^chat\/sessions(?:\/([^/]+))?(?:\/(messages))?$/
+const PROPOSAL = /^chat\/proposals\/([^/]+)(?:\/(accept|reject))?$/
 const VERSIONS = /^posts\/([^/]+)\/versions(?:\/([^/]+))?(?:\/(restore))?$/
 
 async function readRunFile(root, id, name) {
@@ -110,6 +112,22 @@ async function handle(ctx, req, res, root) {
         content: body.content,
         selection: body.selection,
       }))
+    }
+  }
+
+  const proposalMatch = PROPOSAL.exec(path)
+  if (proposalMatch) {
+    const id = proposalMatch[1]
+    if (!proposalMatch[2] && method === 'GET') {
+      const proposal = await readProposal(root, id)
+      return proposal ? json(res, 200, proposal) : json(res, 404, { error: '提案不存在' })
+    }
+    if (proposalMatch[2] === 'accept' && method === 'POST') {
+      const body = await readJson(req).catch(() => ({}))
+      return json(res, 200, await applyProposal(root, id, { version: body.version }))
+    }
+    if (proposalMatch[2] === 'reject' && method === 'POST') {
+      return json(res, 200, { proposal: await rejectProposal(root, id) })
     }
   }
 

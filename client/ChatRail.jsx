@@ -1,13 +1,15 @@
 import React from 'react'
 import { api } from './api.js'
+import { ProposalDialog } from './ProposalDialog.jsx'
 import { t } from './i18n.js'
 
-export function ChatRail({ slug, onCollapse }) {
+export function ChatRail({ slug, onCollapse, onArticleSaved }) {
   const [session, setSession] = React.useState(null)
   const [messages, setMessages] = React.useState([])
   const [input, setInput] = React.useState('')
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [proposal, setProposal] = React.useState(null)
   const bodyRef = React.useRef(null)
 
   React.useEffect(() => {
@@ -66,6 +68,15 @@ export function ChatRail({ slug, onCollapse }) {
     }
   }
 
+  async function openProposal(id) {
+    try {
+      setError('')
+      setProposal(await api(`/chat/proposals/${id}`))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   async function newSession() {
     if (!slug) return
     try {
@@ -96,6 +107,11 @@ export function ChatRail({ slug, onCollapse }) {
             className={`blog-chat-msg is-${message.role}${message.error ? ' is-error' : ''}`}
           >
             {message.content}
+            {message.proposalId ? (
+              <button type="button" className="blog-link" onClick={() => openProposal(message.proposalId)}>
+                {t('查看修改')}
+              </button>
+            ) : null}
           </div>
         ))}
         {error ? <p className="blog-note is-error">{error}</p> : null}
@@ -118,6 +134,16 @@ export function ChatRail({ slug, onCollapse }) {
           {busy ? t('发送中…') : t('发送')}
         </button>
       </div>
+      {proposal ? (
+        <ProposalDialog
+          proposal={proposal}
+          onClose={() => setProposal(null)}
+          onAccepted={() => {
+            setProposal(null)
+            onArticleSaved?.()
+          }}
+        />
+      ) : null}
     </div>
   )
 }
