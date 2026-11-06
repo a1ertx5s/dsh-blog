@@ -1154,3 +1154,15 @@
   border-radius: var(--blog-radius-sm, 8px);
   background: #fff;
 }
+
+.blog-outline-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.blog-outline-item:hover {
+  color: var(--dsw-alias-brand-primary);
+}

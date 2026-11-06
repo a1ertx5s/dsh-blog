@@ -39,6 +39,7 @@ function BlogPanel({ target, onConsumed }) {
   const [chatOpen, setChatOpen] = React.useState(true)
   const [leftOpen, setLeftOpen] = React.useState(false)
   const [outline, setOutline] = React.useState([])
+  const [focus, setFocus] = React.useState(null)
   const importRef = React.useRef(null)
 
   const load = React.useCallback(async () => {
@@ -233,14 +234,21 @@ function BlogPanel({ target, onConsumed }) {
             <nav className="blog-outline">
               <div className="blog-outline-head">{t('本文大纲')}</div>
               {outline.length ? outline.map((heading, index) => (
-                <div className="blog-outline-item" key={`${heading}-${index}`}>{heading}</div>
+                <button
+                  type="button"
+                  className="blog-outline-item"
+                  key={`${heading}-${index}`}
+                  onClick={() => setFocus({ heading, at: Date.now() })}
+                >
+                  {heading}
+                </button>
               )) : <p className="blog-muted">{t('还没有小节')}</p>}
             </nav>
           </aside>
 
           <main className="blog-main">
             {selected ? (
-              <ArticleDetail key={selected} slug={selected} onSaved={load} />
+              <ArticleDetail key={selected} slug={selected} onSaved={load} focus={focus} />
             ) : (
               <div className="blog-empty">
                 <p>{posts.length ? t('从左侧选一篇文章。') : t('还没有文章。回到起笔写一篇。')}</p>

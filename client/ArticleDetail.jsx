@@ -28,7 +28,7 @@ function escapeHtml(text) {
   return String(text).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]))
 }
 
-export function ArticleDetail({ slug, onSaved }) {
+export function ArticleDetail({ slug, onSaved, focus = null }) {
   const [article, setArticle] = React.useState(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState('')
@@ -55,6 +55,7 @@ export function ArticleDetail({ slug, onSaved }) {
   const [previewing, setPreviewing] = React.useState(false)
   const [publishingPreview, setPublishingPreview] = React.useState(false)
   const bodyRef = React.useRef(null)
+  const pendingFocus = React.useRef(null)
   const fileRef = React.useRef(null)
   const coverRef = React.useRef(null)
 
@@ -83,6 +84,25 @@ export function ArticleDetail({ slug, onSaved }) {
   }, [slug, applyArticle])
 
   React.useEffect(() => { load() }, [load])
+
+  React.useEffect(() => {
+    if (!focus?.heading) return
+    pendingFocus.current = focus.heading
+    if (tab !== 'source') setTab('source')
+  }, [focus])
+
+  React.useEffect(() => {
+    if (tab !== 'source' || !pendingFocus.current) return
+    const heading = pendingFocus.current
+    pendingFocus.current = null
+    const textarea = bodyRef.current
+    const index = body.indexOf(`## ${heading}`)
+    if (!textarea || index < 0) return
+    textarea.focus()
+    textarea.setSelectionRange(index, index + heading.length + 3)
+    const line = body.slice(0, index).split('\n').length
+    textarea.scrollTop = Math.max(0, (line - 3) * 22)
+  }, [tab, body])
 
   React.useEffect(() => {
     if (tab !== 'versions') return
