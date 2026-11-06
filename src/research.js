@@ -4,6 +4,7 @@ import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { isIP } from 'node:net'
 import { join } from 'node:path'
 import { callModel } from './llm.js'
+import { fetchWeb, searchWeb } from './search.js'
 
 export class ResearchError extends Error {
   constructor(message, { code = 'RESEARCH_ERROR' } = {}) {
@@ -126,7 +127,7 @@ export async function searchSources(ctx, queries, { maxSources = 6, perQuery = 4
 
   for (const query of queries) {
     try {
-      const result = await web.search({ query, maxResults: perQuery }, signal)
+      const result = await searchWeb(ctx, { query, maxResults: perQuery }, signal)
       for (const source of result?.sources ?? []) {
         if (sources.length >= maxSources) break
         if (!source?.url || seen.has(source.url)) continue
@@ -152,7 +153,7 @@ export async function enrichSources(ctx, sources, { max = 3, signal } = {}) {
   for (const source of sources.slice(0, max)) {
     try {
       await assertPublicUrl(source.url)
-      const result = await web.fetch({ url: source.url }, signal)
+      const result = await fetchWeb(ctx, { url: source.url }, signal)
       if (result?.statusCode >= 200 && result.statusCode < 300) {
         const content = result.body?.content ?? ''
         const text = result.body?.kind === 'html' ? stripHtml(content) : String(content)
