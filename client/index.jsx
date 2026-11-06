@@ -8,6 +8,8 @@ import { Diagnostics } from './Diagnostics.jsx'
 import { Pipeline } from './Pipeline.jsx'
 import { StartPage } from './StartPage.jsx'
 import { ChatRail } from './ChatRail.jsx'
+import { SitePage } from './SitePage.jsx'
+import { SettingsPage } from './SettingsPage.jsx'
 import { registerLocale, t } from './i18n.js'
 
 function PanelIcon({ size = 18 }) {
@@ -269,15 +271,6 @@ function BlogPanel({ target, onConsumed }) {
   )
 }
 
-function Placeholder({ title, text }) {
-  return (
-    <section className="blog-page">
-      <div className="blog-page-head"><h1>{title}</h1></div>
-      <p className="blog-muted">{text}</p>
-    </section>
-  )
-}
-
 function BlogShell() {
   const [tab, setTab] = React.useState('start')
   const [target, setTarget] = React.useState(null)
@@ -311,8 +304,8 @@ function BlogShell() {
 
       {tab === 'start' ? <StartPage onStarted={started} /> : null}
       {tab === 'write' ? <BlogPanel target={target} onConsumed={() => setTarget(null)} /> : null}
-      {tab === 'site' ? <Placeholder title={t('阅卷')} text={t('整站预览与发布历史，下一步接入。')} /> : null}
-      {tab === 'settings' ? <Placeholder title={t('立规')} text={t('站点、部署与诊断，下一步接入。')} /> : null}
+      {tab === 'site' ? <SitePage /> : null}
+      {tab === 'settings' ? <SettingsPage /> : null}
     </div>
   )
 }

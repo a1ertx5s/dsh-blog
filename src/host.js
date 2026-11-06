@@ -16,6 +16,7 @@ import { publishDue, startScheduler } from './schedule.js'
 import { createJobsFromTopics, proposeTopics } from './topics.js'
 import { exportMarkdown, importMarkdown } from './transfer.js'
 import { buildPreview, readPreview } from './preview.js'
+import { readSettings, writeSettings } from './settings.js'
 import { createSession, deleteSession, listSessions, readSession, sendMessage } from './chat.js'
 import { applyProposal, readProposal, rejectProposal } from './proposals.js'
 import { listVersions, readVersion, restoreVersion } from './versions.js'
@@ -179,6 +180,11 @@ async function handle(ctx, req, res, root) {
   if (method === 'POST' && path === 'topics/jobs') {
     const body = await readJson(req).catch(() => ({}))
     return json(res, 201, await createJobsFromTopics(root, body.topics))
+  }
+
+  if (path === 'settings') {
+    if (method === 'GET') return json(res, 200, await readSettings(root))
+    if (method === 'PUT') return json(res, 200, await writeSettings(root, await readJson(req)))
   }
 
   if (method === 'GET' && path === 'cost') {
