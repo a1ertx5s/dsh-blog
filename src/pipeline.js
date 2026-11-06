@@ -2,9 +2,10 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { readArticle } from './article.js'
+import { addUsage, assertBudget } from './budget.js'
 import { draftJob } from './draft.js'
 import { runGates } from './gates.js'
-import { updateJob } from './jobs.js'
+import { readJob, updateJob } from './jobs.js'
 import { callModel } from './llm.js'
 import { outlineJob } from './outline.js'
 import { researchJob } from './research.js'
@@ -52,21 +53,30 @@ export async function runPipeline(ctx, { root, job, call = callModel, deps = {} 
 
   await updateJob(root, job.id, { status: 'running', stage: 'research', error: null, note: 'start' })
 
+  const trackedCall = async (trackedCtx, options) => {
+    await assertBudget(root, { job: await readJob(root, job.id) })
+    const result = await call(trackedCtx, options)
+    await addUsage(root, job.id, result?.usage || {})
+    await assertBudget(root, { job: await readJob(root, job.id) })
+    return result
+  }
+
   try {
-    const researchPayload = await researchStage(ctx, { root, job, call })
+    await assertBudget(root, { job: await readJob(root, job.id) })
+    const researchPayload = await researchStage(ctx, { root, job, call: trackedCall })
     const sources = researchPayload.sources ?? []
     await updateJob(root, job.id, { stage: 'outline' })
 
-    const outlinePayload = await outlineStage(ctx, { root, job, sources, call })
+    const outlinePayload = await outlineStage(ctx, { root, job, sources, call: trackedCall })
     const outline = outlinePayload.outline
     await updateJob(root, job.id, { stage: 'draft' })
 
-    const draftPayload = await draftStage(ctx, { root, job, outline, sources, call })
+    const draftPayload = await draftStage(ctx, { root, job, outline, sources, call: trackedCall })
     await updateJob(root, job.id, { stage: 'gates', slug: draftPayload.slug })
 
     const editorial = await readEditorial(root)
     let article = draftPayload.article
-    let gatesPayload = await gatesStage(ctx, { root, job, article, sources, editorial, call })
+    let gatesPayload = await gatesStage(ctx, { root, job, article, sources, editorial, call: trackedCall })
 
     if (!gatesPayload.passed) {
       await updateJob(root, job.id, { stage: 'revise', note: 'auto-revise' })
@@ -77,7 +87,7 @@ export async function runPipeline(ctx, { root, job, call = callModel, deps = {} 
         outline,
         sources,
         comment: autoComment(gatesPayload),
-        call,
+        call: trackedCall,
       })
       article = revised.article
       gatesPayload = revised.gates

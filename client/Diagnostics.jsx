@@ -18,18 +18,20 @@ export function Diagnostics() {
   const [build, setBuild] = React.useState(null)
   const [deploy, setDeploy] = React.useState(null)
   const [check, setCheck] = React.useState(null)
+  const [budget, setBudget] = React.useState(null)
   const [error, setError] = React.useState('')
   const [busy, setBusy] = React.useState(false)
 
   React.useEffect(() => {
     let alive = true
-    Promise.all([api('/state'), api('/root'), api('/build').catch(() => null), api('/deploy').catch(() => null)])
-      .then(([nextState, nextRoot, nextBuild, nextDeploy]) => {
+    Promise.all([api('/state'), api('/root'), api('/build').catch(() => null), api('/deploy').catch(() => null), api('/budget').catch(() => null)])
+      .then(([nextState, nextRoot, nextBuild, nextDeploy, nextBudget]) => {
         if (!alive) return
         setState(nextState)
         setRoot(nextRoot)
         setBuild(nextBuild)
         setDeploy(nextDeploy)
+        setBudget(nextBudget)
       })
       .catch((err) => { if (alive) setError(err.message) })
     return () => { alive = false }
@@ -140,6 +142,16 @@ export function Diagnostics() {
           </p>
         ) : null}
         {deploy?.warning ? <p className="blog-note">{deploy.warning}</p> : null}
+      </div>
+
+      <div className="blog-diag-card">
+        <h3>{t('预算')}</h3>
+        {budget ? (
+          <>
+            <p>{t('本月 tokens')}: {budget.month}{budget.budget?.monthlyTokens ? ` / ${budget.budget.monthlyTokens} (${budget.ok ? t('正常') : t('已超限')})` : ''}</p>
+            <p>{t('单篇上限')}: {budget.budget?.perArticleTokens || t('不限')}</p>
+          </>
+        ) : <p>{t('读取中…')}</p>}
       </div>
 
       <div className="blog-diag-card">

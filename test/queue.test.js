@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { BudgetError } from '../src/budget.js'
 import { createJob, readJob } from '../src/jobs.js'
 import { readQueue, runQueue } from '../src/queue.js'
 
@@ -65,6 +66,23 @@ test('runQueue honors an explicit id list', async () => {
     assert.equal(state.total, 1)
     assert.equal((await readJob(root, a.id)).status, 'queued')
     assert.equal((await readJob(root, b.id)).status, 'review')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('runQueue pauses when the budget is exhausted', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-blog-queue-'))
+  try {
+    const first = await createJob(root, { brief: 'A' })
+    const second = await createJob(root, { brief: 'B' })
+    const state = await runQueue({}, {
+      root,
+      deps: deps({ research: async () => { throw new BudgetError('预算用尽') } }),
+    })
+    assert.equal(state.paused, 'budget')
+    assert.equal((await readJob(root, second.id)).status, 'queued')
+    assert.equal((await readJob(root, first.id)).status, 'failed')
   } finally {
     await rm(root, { recursive: true, force: true })
   }
