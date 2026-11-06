@@ -2,6 +2,7 @@
 import { createArticle, listArticles, readArticle, writeArticle } from './article.js'
 import { json, readJson, requestPath, requestRejection, sameSite } from './http.js'
 import { runProbe, serviceStatus } from './probe.js'
+import { renderMarkdown } from './render.js'
 import { ensureBlogRoot, inspectBlogRoot, resolveBlogRoot } from './root.js'
 
 export const name = 'dsh-blog'
@@ -25,7 +26,7 @@ async function handle(ctx, req, res, root) {
       ok: true,
       plugin: name,
       version: VERSION,
-      stage: 'M1-3',
+      stage: 'M1-4',
       services: serviceStatus(ctx),
     })
   }
@@ -33,6 +34,11 @@ async function handle(ctx, req, res, root) {
   if (method === 'GET' && path === 'root') return json(res, 200, await inspectBlogRoot(root))
   if (method === 'POST' && path === 'root/init') return json(res, 200, await ensureBlogRoot(root))
   if (method === 'POST' && path === 'probe') return json(res, 200, await runProbe(ctx))
+
+  if (method === 'POST' && path === 'render') {
+    const { markdown } = await readJson(req)
+    return json(res, 200, { html: renderMarkdown(markdown) })
+  }
 
   if (path === 'posts') {
     if (method === 'GET') return json(res, 200, { posts: await listArticles(root) })
