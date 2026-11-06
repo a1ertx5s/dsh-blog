@@ -43,6 +43,8 @@ test('readPreview serves files and rejects traversal', async () => {
     const page = await readPreview(root, result.id, 'posts/draft.html')
     assert.ok(page)
     assert.match(page.type, /text\/html/)
+    const encoded = await readPreview(root, result.id, `/posts/${encodeURIComponent('draft')}.html`)
+    assert.ok(encoded)
     assert.equal(await readPreview(root, result.id, '../site.json'), null)
     assert.equal(await readPreview(root, '../x', 'a'), null)
   } finally {
