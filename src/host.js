@@ -23,7 +23,7 @@ export const name = 'dsh-blog'
 export const inject = ['webServer', 'connection']
 
 const PREFIX = '/blog'
-const VERSION = '0.1.0'
+const VERSION = '1.0.0'
 const POST = /^posts\/([^/]+)$/
 const PUBLISH = /^posts\/([^/]+)\/publish$/
 const VERSIONS = /^posts\/([^/]+)\/versions(?:\/([^/]+))?(?:\/(restore))?$/
