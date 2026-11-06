@@ -9,6 +9,7 @@ import { json, readBuffer, readJson, requestPath, requestRejection, sameSite } f
 import { MAX_IMAGE_BYTES, readImage, saveImage } from './images.js'
 import { cancelJob, createJob, listJobs, readJob, recoverJobs, retryJob, updateJob } from './jobs.js'
 import { isJobActive, startPipeline, startRejection } from './pipeline.js'
+import { readQueue, startQueue } from './queue.js'
 import { runProbe, serviceStatus } from './probe.js'
 import { renderMarkdown } from './render.js'
 import { ensureBlogRoot, inspectBlogRoot, resolveBlogRoot } from './root.js'
@@ -68,6 +69,16 @@ async function handle(ctx, req, res, root) {
   if (method === 'POST' && path === 'upload') {
     const buffer = await readBuffer(req, MAX_IMAGE_BYTES)
     return json(res, 201, await saveImage(root, buffer))
+  }
+
+  if (method === 'POST' && path === 'queue/run') {
+    const body = await readJson(req).catch(() => ({}))
+    const started = startQueue(ctx, { root, ids: body.ids })
+    return json(res, started ? 202 : 409, { started })
+  }
+
+  if (method === 'GET' && path === 'queue') {
+    return json(res, 200, await readQueue(root))
   }
 
   if (path === 'jobs') {
