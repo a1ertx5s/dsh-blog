@@ -1,152 +1,11 @@
 // dsh-blog 浏览器半片：主面板与侧栏入口。
 import React from 'react'
 import css from './styles.css'
-
-const DICT = {
-  zh: {
-    title: '博客',
-    heading: '博客工作台',
-    lead: 'AI 长文工厂：选题进，文章出，人只管审批。',
-    mounted: '面板已挂载',
-    next: '服务探针已就绪，下一步是内容模型。',
-    stage: 'M0-5',
-    routeChecking: '正在检查路由…',
-    routeOk: '路由已连通',
-    routeFail: '路由未连通',
-    probe: '运行探针',
-    probing: '探针运行中…',
-    probeModel: '模型',
-    probeWeb: '联网',
-    probeFailed: '探针失败',
-    blogRoot: '博客目录',
-    rootLoading: '读取中…',
-    rootReady: '已初始化',
-    rootMissing: '未初始化',
-    gitOn: 'git 就绪',
-    gitOff: '无 git',
-    init: '初始化目录',
-  },
-  en: {
-    title: 'Blog',
-    heading: 'Blog desk',
-    lead: 'An AI long-form factory: topics in, articles out, humans only approve.',
-    mounted: 'Panel mounted',
-    next: 'Service probes are in. Next: the content model.',
-    stage: 'M0-5',
-    routeChecking: 'Checking routes…',
-    routeOk: 'Routes connected',
-    routeFail: 'Routes unavailable',
-    probe: 'Run probe',
-    probing: 'Probing…',
-    probeModel: 'Model',
-    probeWeb: 'Web',
-    probeFailed: 'Probe failed',
-    blogRoot: 'Blog root',
-    rootLoading: 'Reading…',
-    rootReady: 'initialized',
-    rootMissing: 'not initialized',
-    gitOn: 'git ready',
-    gitOff: 'no git',
-    init: 'Initialize',
-  },
-}
-
-let t = (key) => DICT.zh[key] ?? key
-
-function registerLocale(ctx) {
-  try {
-    const releases = [
-      ctx.locale.register('dsh-blog', 'zh', DICT.zh),
-      ctx.locale.register('dsh-blog', 'en', DICT.en),
-    ]
-    const bound = ctx.locale.bind('dsh-blog')
-    t = (key, params) => {
-      try {
-        const value = bound(key, params)
-        if (typeof value === 'string' && value !== key) return value
-      } catch {}
-      return DICT.zh[key] ?? key
-    }
-    return () => releases.forEach((release) => release())
-  } catch {
-    // locale 不可用时退回中文，面板仍然可用。
-    return () => {}
-  }
-}
-
-function useRouteState() {
-  const [route, setRoute] = React.useState({ status: 'loading' })
-  React.useEffect(() => {
-    let alive = true
-    fetch('/blog/state', { headers: { accept: 'application/json' } })
-      .then(async (res) => {
-        const body = await res.json().catch(() => ({}))
-        if (!alive) return
-        setRoute(res.ok ? { status: 'ok', body } : { status: 'error', code: res.status })
-      })
-      .catch((err) => {
-        if (alive) setRoute({ status: 'error', message: err?.message || '' })
-      })
-    return () => { alive = false }
-  }, [])
-  return route
-}
-
-function useBlogRoot() {
-  const [root, setRoot] = React.useState({ status: 'loading' })
-
-  const load = React.useCallback(async () => {
-    try {
-      const res = await fetch('/blog/root', { headers: { accept: 'application/json' } })
-      const body = await res.json().catch(() => ({}))
-      setRoot({ status: res.ok ? 'ok' : 'error', code: res.status, body })
-    } catch (err) {
-      setRoot({ status: 'error', message: err?.message || '' })
-    }
-  }, [])
-
-  React.useEffect(() => { load() }, [load])
-
-  const init = React.useCallback(async () => {
-    setRoot((prev) => ({ ...prev, status: 'loading' }))
-    try {
-      const res = await fetch('/blog/root/init', { method: 'POST', headers: { accept: 'application/json' } })
-      const body = await res.json().catch(() => ({}))
-      setRoot({ status: res.ok ? 'ok' : 'error', code: res.status, body })
-    } catch (err) {
-      setRoot({ status: 'error', message: err?.message || '' })
-    }
-  }, [])
-
-  return { root, init }
-}
-
-function useProbe() {
-  const [probe, setProbe] = React.useState(null)
-  const [busy, setBusy] = React.useState(false)
-
-  const run = React.useCallback(async () => {
-    setBusy(true)
-    try {
-      const res = await fetch('/blog/probe', { method: 'POST', headers: { accept: 'application/json' } })
-      const body = await res.json().catch(() => ({}))
-      setProbe({ ok: res.ok, code: res.status, body })
-    } catch (err) {
-      setProbe({ ok: false, error: err?.message || '请求失败' })
-    } finally {
-      setBusy(false)
-    }
-  }, [])
-
-  return { probe, busy, run }
-}
-
-function probeLine(label, result) {
-  if (!result) return `${label}: -`
-  if (!result.ok) return `${label}: ${result.error || 'failed'}${result.hint ? `\n${result.hint}` : ''}`
-  const detail = typeof result.count === 'number' ? String(result.count) : (result.text || 'OK')
-  return `${label}: ${detail}`
-}
+import { api } from './api.js'
+import { ArticleDetail } from './ArticleDetail.jsx'
+import { ArticleList } from './ArticleList.jsx'
+import { Diagnostics } from './Diagnostics.jsx'
+import { registerLocale, t } from './i18n.js'
 
 function PanelIcon({ size = 18 }) {
   return (
@@ -158,56 +17,108 @@ function PanelIcon({ size = 18 }) {
 }
 
 function BlogPanel() {
-  const route = useRouteState()
-  const { root, init } = useBlogRoot()
-  const { probe, busy, run } = useProbe()
+  const [view, setView] = React.useState('posts')
+  const [posts, setPosts] = React.useState([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState('')
+  const [selected, setSelected] = React.useState(null)
+  const [creating, setCreating] = React.useState(false)
+  const [newTitle, setNewTitle] = React.useState('')
+  const [busy, setBusy] = React.useState(false)
 
-  const routeClass = route.status === 'ok'
-    ? 'blog-status is-ok'
-    : route.status === 'error' ? 'blog-status is-error' : 'blog-status'
-  const detail = route.code ? ` (${route.code})` : route.message ? ` (${route.message})` : ''
-  const routeText = route.status === 'loading'
-    ? t('routeChecking')
-    : route.status === 'ok' ? t('routeOk') : `${t('routeFail')}${detail}`
+  const load = React.useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const data = await api('/posts')
+      setPosts(data.posts || [])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  const probeText = probe
-    ? [
-        probe.ok ? probeLine(t('probeModel'), probe.body?.model) : `${t('probeFailed')}${probe.code ? ` (${probe.code})` : ''}`,
-        probe.ok ? probeLine(t('probeWeb'), probe.body?.web) : (probe.error || probe.body?.error || ''),
-      ].filter(Boolean).join('\n')
-    : ''
+  React.useEffect(() => { load() }, [load])
 
-  const rootBody = root.body
-  const rootText = root.status === 'loading'
-    ? t('rootLoading')
-    : rootBody
-      ? `${rootBody.root} · ${rootBody.initialized ? t('rootReady') : t('rootMissing')} · ${rootBody.git ? t('gitOn') : t('gitOff')}`
-      : `${t('rootMissing')}${root.code ? ` (${root.code})` : ''}`
+  async function create() {
+    const title = newTitle.trim()
+    if (!title) return
+    setBusy(true)
+    try {
+      const article = await api('/posts', { method: 'POST', body: { title } })
+      setCreating(false)
+      setNewTitle('')
+      await load()
+      setSelected(article.slug)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function closeCreate() {
+    setCreating(false)
+    setNewTitle('')
+  }
 
   return (
     <div className="blog-root">
       <style>{css}</style>
       <header className="blog-head">
-        <span className="blog-kicker">dsh-blog</span>
+        <div className="blog-head-top">
+          <span className="blog-kicker">dsh-blog</span>
+          <nav className="blog-nav">
+            <button type="button" className={view === 'posts' ? 'is-on' : ''} onClick={() => setView('posts')}>{t('文章')}</button>
+            <button type="button" className={view === 'status' ? 'is-on' : ''} onClick={() => setView('status')}>{t('状态')}</button>
+          </nav>
+          <span className="blog-spacer" />
+          <button type="button" className="blog-button is-primary" onClick={() => setCreating(true)}>{t('新建')}</button>
+        </div>
         <h1>{t('heading')}</h1>
         <p className="blog-lead">{t('lead')}</p>
       </header>
-      <section className="blog-card">
-        <span className="blog-badge">{t('stage')}</span>
-        <h2>{t('mounted')}</h2>
-        <p>{t('next')}</p>
-        <p className={routeClass}>{routeText}</p>
-        <p className="blog-meta">{t('blogRoot')}: {rootText}</p>
-        {rootBody && !rootBody.initialized ? (
-          <button type="button" className="blog-button" onClick={init}>{t('init')}</button>
-        ) : null}
-        <div className="blog-probe">
-          <button type="button" className="blog-button" onClick={run} disabled={busy}>
-            {busy ? t('probing') : t('probe')}
+
+      {creating ? (
+        <div className="blog-create">
+          <input
+            autoFocus
+            value={newTitle}
+            onChange={(event) => setNewTitle(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') create()
+              if (event.key === 'Escape') closeCreate()
+            }}
+            placeholder={t('文章标题')}
+          />
+          <button type="button" className="blog-button is-primary" onClick={create} disabled={busy}>
+            {busy ? t('创建中…') : t('创建')}
           </button>
-          {probeText ? <pre className="blog-probe-result">{probeText}</pre> : null}
+          <button type="button" className="blog-button" onClick={closeCreate}>{t('取消')}</button>
         </div>
-      </section>
+      ) : null}
+
+      {view === 'status' ? <Diagnostics /> : (
+        <div className="blog-workspace">
+          <ArticleList
+            posts={posts}
+            loading={loading}
+            error={error}
+            selected={selected}
+            onSelect={setSelected}
+          />
+          <main className="blog-main">
+            {selected ? (
+              <ArticleDetail key={selected} slug={selected} onSaved={load} />
+            ) : (
+              <div className="blog-empty">
+                <p>{t('从左侧选一篇文章，或者新建一篇。')}</p>
+              </div>
+            )}
+          </main>
+        </div>
+      )}
     </div>
   )
 }
