@@ -2,6 +2,7 @@
 import { cp, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { listArticles, readArticle } from './article.js'
+import { checkSite } from './check.js'
 import { renderMarkdown } from './render.js'
 
 export function normalizeBasePath(value) {
@@ -320,6 +321,9 @@ export async function buildSite(root, { now = new Date() } = {}) {
   }
   if (hadTarget) await rm(backup, { recursive: true, force: true })
 
+  const checks = await checkSite(root, site)
+  if (!checks.ok) warnings.push(`自检发现 ${checks.issues.length} 个问题`)
+
   const report = {
     schemaVersion: 1,
     at: now.toISOString(),
@@ -328,6 +332,7 @@ export async function buildSite(root, { now = new Date() } = {}) {
     articles: articles.length,
     files,
     warnings,
+    checks,
     site: { title: site.title, url: site.url, basePath: site.basePath },
   }
   await mkdir(join(root, '.blog'), { recursive: true })

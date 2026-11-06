@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createArticle, listArticles, readArticle, writeArticle } from './article.js'
 import { buildSite, loadSite } from './build.js'
+import { checkSite } from './check.js'
 import { deploySite, readDeployStatus } from './deploy.js'
 import { json, readBuffer, readJson, requestPath, requestRejection, sameSite } from './http.js'
 import { MAX_IMAGE_BYTES, readImage, saveImage } from './images.js'
@@ -193,6 +194,12 @@ async function handle(ctx, req, res, root) {
 
   if (method === 'GET' && path === 'deploy') {
     return json(res, 200, await readDeployStatus(root))
+  }
+
+  if (method === 'POST' && path === 'check') {
+    const body = await readJson(req).catch(() => ({}))
+    const site = await loadSite(root)
+    return json(res, 200, await checkSite(root, site, { live: Boolean(body.live) }))
   }
 
   const publish = PUBLISH.exec(path)
