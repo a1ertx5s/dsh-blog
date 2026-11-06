@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createArticle, listArticles, readArticle, writeArticle } from './article.js'
 import { budgetStatus } from './budget.js'
+import { costReport } from './cost.js'
 import { buildSite, loadSite } from './build.js'
 import { checkSite } from './check.js'
 import { deploySite, readDeployStatus } from './deploy.js'
@@ -12,6 +13,7 @@ import { cancelJob, createJob, listJobs, readJob, recoverJobs, retryJob, updateJ
 import { isJobActive, startPipeline, startRejection } from './pipeline.js'
 import { readQueue, startQueue } from './queue.js'
 import { publishDue, startScheduler } from './schedule.js'
+import { createJobsFromTopics, proposeTopics } from './topics.js'
 import { runProbe, serviceStatus } from './probe.js'
 import { renderMarkdown } from './render.js'
 import { ensureBlogRoot, inspectBlogRoot, resolveBlogRoot } from './root.js'
@@ -85,6 +87,20 @@ async function handle(ctx, req, res, root) {
 
   if (method === 'POST' && path === 'schedule/run') {
     return json(res, 200, await publishDue(ctx, { root }))
+  }
+
+  if (method === 'POST' && path === 'topics') {
+    const body = await readJson(req).catch(() => ({}))
+    return json(res, 200, await proposeTopics(ctx, { root, count: body.count, keywords: body.keywords }))
+  }
+
+  if (method === 'POST' && path === 'topics/jobs') {
+    const body = await readJson(req).catch(() => ({}))
+    return json(res, 201, await createJobsFromTopics(root, body.topics))
+  }
+
+  if (method === 'GET' && path === 'cost') {
+    return json(res, 200, await costReport(root))
   }
 
   if (method === 'GET' && path === 'budget') {

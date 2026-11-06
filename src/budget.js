@@ -16,7 +16,7 @@ export function usageTotal(usage) {
   return (Number(usage?.input) || 0) + (Number(usage?.output) || 0)
 }
 
-function sameMonth(iso, now) {
+export function sameMonth(iso, now) {
   const date = new Date(iso)
   return date.getUTCFullYear() === now.getUTCFullYear() && date.getUTCMonth() === now.getUTCMonth()
 }

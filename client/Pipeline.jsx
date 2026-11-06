@@ -64,6 +64,8 @@ export function Pipeline({ onOpenArticle }) {
   const [comment, setComment] = React.useState('')
   const [queue, setQueue] = React.useState(null)
   const [publishAt, setPublishAt] = React.useState('')
+  const [topics, setTopics] = React.useState([])
+  const [selectedTopics, setSelectedTopics] = React.useState({})
 
   const load = React.useCallback(async () => {
     try {
@@ -90,6 +92,36 @@ export function Pipeline({ onOpenArticle }) {
     setBusy('queue')
     try {
       await api('/queue/run', { method: 'POST', body: {} })
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function generateTopics() {
+    setBusy('topics')
+    try {
+      const data = await api('/topics', { method: 'POST', body: { count: 6 } })
+      setTopics(data.topics || [])
+      setSelectedTopics({})
+      setError('')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function addTopics() {
+    const picked = topics.filter((_, index) => selectedTopics[index])
+    if (!picked.length) return
+    setBusy('topics')
+    try {
+      await api('/topics/jobs', { method: 'POST', body: { topics: picked } })
+      setTopics([])
+      setSelectedTopics({})
       await load()
     } catch (err) {
       setError(err.message)
@@ -191,6 +223,32 @@ export function Pipeline({ onOpenArticle }) {
         <button type="button" className="blog-button is-primary" onClick={create} disabled={busy === 'create'}>
           {busy === 'create' ? t('创建中…') : t('开始生产')}
         </button>
+      </div>
+
+      <div className="blog-job-create">
+        <div className="blog-job-actions">
+          <button type="button" className="blog-button" onClick={generateTopics} disabled={busy === 'topics'}>
+            {busy === 'topics' ? t('生成中…') : t('生成选题')}
+          </button>
+          {topics.length ? (
+            <button type="button" className="blog-button" onClick={addTopics} disabled={busy === 'topics'}>
+              {t('加入队列')}（{Object.values(selectedTopics).filter(Boolean).length}）
+            </button>
+          ) : null}
+        </div>
+        {topics.map((topic, index) => (
+          <label className="blog-topic" key={`${topic.title}-${index}`}>
+            <input
+              type="checkbox"
+              checked={Boolean(selectedTopics[index])}
+              onChange={(event) => setSelectedTopics((prev) => ({ ...prev, [index]: event.target.checked }))}
+            />
+            <span>
+              <strong>{topic.title}</strong>
+              {topic.angle ? <em>{topic.angle}</em> : null}
+            </span>
+          </label>
+        ))}
       </div>
 
       {jobs.some((job) => job.status === 'queued') ? (
