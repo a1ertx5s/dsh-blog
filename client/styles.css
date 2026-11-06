@@ -827,3 +827,9 @@
 
 .blog-diff .is-add { color: var(--dsw-alias-state-success-primary); }
 .blog-diff .is-del { color: var(--dsw-alias-state-error-primary); }
+
+.blog-button[href] {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}

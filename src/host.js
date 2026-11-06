@@ -14,6 +14,7 @@ import { isJobActive, startPipeline, startRejection } from './pipeline.js'
 import { readQueue, startQueue } from './queue.js'
 import { publishDue, startScheduler } from './schedule.js'
 import { createJobsFromTopics, proposeTopics } from './topics.js'
+import { exportMarkdown, importMarkdown } from './transfer.js'
 import { listVersions, readVersion, restoreVersion } from './versions.js'
 import { runProbe, serviceStatus } from './probe.js'
 import { renderMarkdown } from './render.js'
@@ -26,6 +27,7 @@ const PREFIX = '/blog'
 const VERSION = '1.0.0'
 const POST = /^posts\/([^/]+)$/
 const PUBLISH = /^posts\/([^/]+)\/publish$/
+const EXPORT = /^posts\/([^/]+)\/export$/
 const VERSIONS = /^posts\/([^/]+)\/versions(?:\/([^/]+))?(?:\/(restore))?$/
 
 async function readRunFile(root, id, name) {
@@ -244,6 +246,23 @@ async function handle(ctx, req, res, root) {
     const body = await readJson(req).catch(() => ({}))
     const site = await loadSite(root)
     return json(res, 200, await checkSite(root, site, { live: Boolean(body.live) }))
+  }
+
+  const exportMatch = EXPORT.exec(path)
+  if (exportMatch && method === 'GET') {
+    const slug = decodeURIComponent(exportMatch[1])
+    const raw = await exportMarkdown(root, slug)
+    res.writeHead(200, {
+      'content-type': 'text/markdown; charset=utf-8',
+      'content-disposition': `attachment; filename="${encodeURIComponent(slug)}.md"`,
+    })
+    return res.end(raw)
+  }
+
+  if (method === 'POST' && path === 'import') {
+    const body = await readJson(req)
+    const article = await importMarkdown(root, body.markdown, { filename: body.filename })
+    return json(res, 201, { article })
   }
 
   const versions = VERSIONS.exec(path)

@@ -26,6 +26,8 @@ function BlogPanel() {
   const [creating, setCreating] = React.useState(false)
   const [newTitle, setNewTitle] = React.useState('')
   const [busy, setBusy] = React.useState(false)
+  const [importing, setImporting] = React.useState(false)
+  const importRef = React.useRef(null)
 
   const load = React.useCallback(async () => {
     setLoading(true)
@@ -59,6 +61,21 @@ function BlogPanel() {
     }
   }
 
+  async function importFile(file) {
+    if (!file) return
+    setImporting(true)
+    try {
+      const markdown = await file.text()
+      const result = await api('/import', { method: 'POST', body: { markdown, filename: file.name } })
+      await load()
+      setSelected(result.article.slug)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setImporting(false)
+    }
+  }
+
   function closeCreate() {
     setCreating(false)
     setNewTitle('')
@@ -67,6 +84,16 @@ function BlogPanel() {
   return (
     <div className="blog-root">
       <style>{css}</style>
+      <input
+        ref={importRef}
+        type="file"
+        accept=".md,.markdown,text/markdown"
+        hidden
+        onChange={(event) => {
+          importFile(event.target.files?.[0])
+          event.target.value = ''
+        }}
+      />
       <header className="blog-head">
         <div className="blog-head-top">
           <span className="blog-kicker">dsh-blog</span>
@@ -76,7 +103,14 @@ function BlogPanel() {
             <button type="button" className={view === 'status' ? 'is-on' : ''} onClick={() => setView('status')}>{t('状态')}</button>
           </nav>
           <span className="blog-spacer" />
-          {view === 'posts' ? <button type="button" className="blog-button is-primary" onClick={() => setCreating(true)}>{t('新建')}</button> : null}
+          {view === 'posts' ? (
+            <>
+              <button type="button" className="blog-button" onClick={() => importRef.current?.click()} disabled={importing}>
+                {importing ? t('导入中…') : t('导入')}
+              </button>
+              <button type="button" className="blog-button is-primary" onClick={() => setCreating(true)}>{t('新建')}</button>
+            </>
+          ) : null}
         </div>
         <h1>{t('heading')}</h1>
         <p className="blog-lead">{t('lead')}</p>
