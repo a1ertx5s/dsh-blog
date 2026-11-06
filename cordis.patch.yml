@@ -1,0 +1,4 @@
+# dsh-blog bundle patch：同一个包提供 Host 与浏览器半片
+- insert:
+    - id: blog
+      name: 'dsh-blog'
