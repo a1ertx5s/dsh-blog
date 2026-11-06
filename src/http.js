@@ -35,3 +35,20 @@ export function requestRejection(ctx, req) {
   if (typeof connection?.requestRejection !== 'function') return 403
   return connection.requestRejection({ headers: req.headers })
 }
+
+/** 读 JSON 请求体，带大小上限；错误带 status，交给路由统一返回。 */
+export async function readJson(req, limit = 1_000_000) {
+  const chunks = []
+  let size = 0
+  for await (const chunk of req) {
+    size += chunk.length
+    if (size > limit) throw Object.assign(new Error('请求体太大'), { status: 413 })
+    chunks.push(chunk)
+  }
+  if (!size) return {}
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  } catch {
+    throw Object.assign(new Error('请求不是有效的 JSON'), { status: 400 })
+  }
+}

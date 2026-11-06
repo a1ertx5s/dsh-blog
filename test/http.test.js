@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { json, requestPath, requestRejection, sameSite } from '../src/http.js'
+import { json, readJson, requestPath, requestRejection, sameSite } from '../src/http.js'
 
 test('requestPath matches the prefix boundary only', () => {
   assert.equal(requestPath({ url: '/blog/state' }, '/blog'), 'state')
@@ -47,4 +47,18 @@ test('json writes status, headers and body once', () => {
   assert.equal(res.headers['content-type'], 'application/json; charset=utf-8')
   assert.equal(res.headers['cache-control'], 'no-store')
   assert.equal(res.body, '{"ok":true}')
+})
+
+const body = (...chunks) => (async function* stream() {
+  for (const chunk of chunks) yield Buffer.from(chunk)
+})()
+
+test('readJson parses JSON and tolerates an empty body', async () => {
+  assert.deepEqual(await readJson(body('{"ok":1}')), { ok: 1 })
+  assert.deepEqual(await readJson(body()), {})
+})
+
+test('readJson rejects malformed and oversized bodies', async () => {
+  await assert.rejects(readJson(body('{')), (err) => err.status === 400)
+  await assert.rejects(readJson(body('12345'), 3), (err) => err.status === 413)
 })

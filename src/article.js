@@ -1,5 +1,5 @@
 // 文章：frontmatter 解析、序列化、slug 与索引。
-import { readdir, readFile, stat } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 
@@ -151,5 +151,50 @@ export async function readArticle(root, slug) {
   }
   const parsed = parseArticle(raw)
   const data = normalizeArticleData(parsed.data, { fallbackSlug: slug })
-  return { slug: data.slug, data, body: parsed.body, file }
+  const info = await stat(file)
+  return { slug: data.slug, data, body: parsed.body, file, version: String(info.mtimeMs) }
+}
+
+/** 原子写：先写同目录临时文件，再 rename，避免读到半截。 */
+export async function writeArticle(root, slug, { data = {}, body = '', version } = {}) {
+  if (!isSafeSlug(slug)) throw Object.assign(new Error('slug 无效'), { status: 400 })
+  const dir = join(root, 'content', 'posts')
+  await mkdir(dir, { recursive: true })
+  const file = join(dir, `${slug}.md`)
+
+  if (version !== undefined && version !== null && version !== '') {
+    const current = await stat(file).catch(() => null)
+    if (!current) throw Object.assign(new Error('文章不存在'), { status: 404 })
+    if (String(current.mtimeMs) !== String(version)) {
+      throw Object.assign(new Error('文章已被修改，请刷新后重试'), { status: 409, version: String(current.mtimeMs) })
+    }
+  }
+
+  const normalized = normalizeArticleData({ ...data, slug }, { fallbackSlug: slug })
+  const text = stringifyArticle({ data: normalized, body })
+  const tmp = join(dir, `.${slug}.${process.pid}.${Date.now()}.tmp`)
+  await writeFile(tmp, text, 'utf8')
+  await rename(tmp, file)
+  const info = await stat(file)
+  return { slug: normalized.slug, data: normalized, body, file, version: String(info.mtimeMs) }
+}
+
+export async function createArticle(root, { title, body = '', data = {} } = {}) {
+  const name = typeof title === 'string' ? title.trim() : ''
+  if (!name) throw Object.assign(new Error('标题不能为空'), { status: 400 })
+
+  const existing = await listArticles(root)
+  const taken = existing.map((post) => post.slug)
+  const base = slugify(data.slug || name) || 'post'
+  const slug = uniqueSlug(base, taken)
+
+  const normalized = normalizeArticleData({
+    ...data,
+    title: name,
+    slug,
+    date: data.date || formatDate(new Date()),
+    status: data.status || 'draft',
+  }, { fallbackSlug: slug })
+
+  return writeArticle(root, slug, { data: normalized, body })
 }
