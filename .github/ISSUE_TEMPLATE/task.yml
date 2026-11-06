@@ -1,0 +1,23 @@
+name: 开发任务
+description: 一个可交付的开发任务
+title: "[task] "
+labels: ["type:chore"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: 目标
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 可验证的完成条件
+    validations:
+      required: true
+  - type: input
+    id: milestone
+    attributes:
+      label: 里程碑
+      placeholder: M0
