@@ -1,6 +1,7 @@
 // dsh-blog host 半片：/blog/* 路由与鉴权。
 import { json, requestPath, requestRejection, sameSite } from './http.js'
 import { runProbe, serviceStatus } from './probe.js'
+import { ensureBlogRoot, inspectBlogRoot, resolveBlogRoot } from './root.js'
 
 export const name = 'dsh-blog'
 export const inject = ['webServer', 'connection']
@@ -24,6 +25,14 @@ async function handle(ctx, req, res) {
       stage: 'M0-5',
       services: serviceStatus(ctx),
     })
+  }
+
+  if (req.method === 'GET' && path === 'root') {
+    return json(res, 200, await inspectBlogRoot(resolveBlogRoot()))
+  }
+
+  if (req.method === 'POST' && path === 'root/init') {
+    return json(res, 200, await ensureBlogRoot(resolveBlogRoot()))
   }
 
   if (req.method === 'POST' && path === 'probe') {

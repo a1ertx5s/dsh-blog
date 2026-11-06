@@ -18,6 +18,13 @@ const DICT = {
     probeModel: '模型',
     probeWeb: '联网',
     probeFailed: '探针失败',
+    blogRoot: '博客目录',
+    rootLoading: '读取中…',
+    rootReady: '已初始化',
+    rootMissing: '未初始化',
+    gitOn: 'git 就绪',
+    gitOff: '无 git',
+    init: '初始化目录',
   },
   en: {
     title: 'Blog',
@@ -34,6 +41,13 @@ const DICT = {
     probeModel: 'Model',
     probeWeb: 'Web',
     probeFailed: 'Probe failed',
+    blogRoot: 'Blog root',
+    rootLoading: 'Reading…',
+    rootReady: 'initialized',
+    rootMissing: 'not initialized',
+    gitOn: 'git ready',
+    gitOff: 'no git',
+    init: 'Initialize',
   },
 }
 
@@ -78,6 +92,35 @@ function useRouteState() {
   return route
 }
 
+function useBlogRoot() {
+  const [root, setRoot] = React.useState({ status: 'loading' })
+
+  const load = React.useCallback(async () => {
+    try {
+      const res = await fetch('/blog/root', { headers: { accept: 'application/json' } })
+      const body = await res.json().catch(() => ({}))
+      setRoot({ status: res.ok ? 'ok' : 'error', code: res.status, body })
+    } catch (err) {
+      setRoot({ status: 'error', message: err?.message || '' })
+    }
+  }, [])
+
+  React.useEffect(() => { load() }, [load])
+
+  const init = React.useCallback(async () => {
+    setRoot((prev) => ({ ...prev, status: 'loading' }))
+    try {
+      const res = await fetch('/blog/root/init', { method: 'POST', headers: { accept: 'application/json' } })
+      const body = await res.json().catch(() => ({}))
+      setRoot({ status: res.ok ? 'ok' : 'error', code: res.status, body })
+    } catch (err) {
+      setRoot({ status: 'error', message: err?.message || '' })
+    }
+  }, [])
+
+  return { root, init }
+}
+
 function useProbe() {
   const [probe, setProbe] = React.useState(null)
   const [busy, setBusy] = React.useState(false)
@@ -116,6 +159,7 @@ function PanelIcon({ size = 18 }) {
 
 function BlogPanel() {
   const route = useRouteState()
+  const { root, init } = useBlogRoot()
   const { probe, busy, run } = useProbe()
 
   const routeClass = route.status === 'ok'
@@ -133,6 +177,13 @@ function BlogPanel() {
       ].filter(Boolean).join('\n')
     : ''
 
+  const rootBody = root.body
+  const rootText = root.status === 'loading'
+    ? t('rootLoading')
+    : rootBody
+      ? `${rootBody.root} · ${rootBody.initialized ? t('rootReady') : t('rootMissing')} · ${rootBody.git ? t('gitOn') : t('gitOff')}`
+      : `${t('rootMissing')}${root.code ? ` (${root.code})` : ''}`
+
   return (
     <div className="blog-root">
       <style>{css}</style>
@@ -146,6 +197,10 @@ function BlogPanel() {
         <h2>{t('mounted')}</h2>
         <p>{t('next')}</p>
         <p className={routeClass}>{routeText}</p>
+        <p className="blog-meta">{t('blogRoot')}: {rootText}</p>
+        {rootBody && !rootBody.initialized ? (
+          <button type="button" className="blog-button" onClick={init}>{t('init')}</button>
+        ) : null}
         <div className="blog-probe">
           <button type="button" className="blog-button" onClick={run} disabled={busy}>
             {busy ? t('probing') : t('probe')}

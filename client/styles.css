@@ -85,6 +85,14 @@
   color: var(--dsw-alias-state-error-primary);
 }
 
+.blog-meta {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--dsw-alias-label-secondary);
+  word-break: break-all;
+}
+
 .blog-probe {
   display: flex;
   flex-wrap: wrap;
