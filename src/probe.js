@@ -1,6 +1,7 @@
 // 服务探针：确认宿主当前版本里模型与联网能力是否真的可用。
 // 只读诊断，不写任何状态；失败返回 ok:false 而不是抛出。
 import { callModel, modelInfo, serviceStatus } from './llm.js'
+import { searchWeb } from './search.js'
 
 export { modelInfo, serviceStatus }
 
@@ -43,7 +44,7 @@ export async function probeWeb(ctx, query = 'DeepSeek Harness') {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), WEB_TIMEOUT_MS)
   try {
-    const result = await web.search({ query, maxResults: 3 }, controller.signal)
+    const result = await searchWeb(ctx, { query, maxResults: 3 }, controller.signal)
     const sources = Array.isArray(result?.sources) ? result.sources : []
     return {
       ok: true,
