@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { json, readJson, requestPath, requestRejection, sameSite } from '../src/http.js'
+import { json, readBuffer, readJson, requestPath, requestRejection, sameSite } from '../src/http.js'
 
 test('requestPath matches the prefix boundary only', () => {
   assert.equal(requestPath({ url: '/blog/state' }, '/blog'), 'state')
@@ -61,4 +61,10 @@ test('readJson parses JSON and tolerates an empty body', async () => {
 test('readJson rejects malformed and oversized bodies', async () => {
   await assert.rejects(readJson(body('{')), (err) => err.status === 400)
   await assert.rejects(readJson(body('12345'), 3), (err) => err.status === 413)
+})
+
+test('readBuffer concatenates chunks and enforces the limit', async () => {
+  const buffer = await readBuffer(body('ab', 'cd'))
+  assert.equal(buffer.toString(), 'abcd')
+  await assert.rejects(readBuffer(body('12345'), 3), (err) => err.status === 413)
 })
