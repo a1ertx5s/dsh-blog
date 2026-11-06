@@ -5,6 +5,7 @@ import { stringifyArticle, writeArticle } from './article.js'
 import { writeVersion } from './draft.js'
 import { runGates } from './gates.js'
 import { callModel } from './llm.js'
+import { languageInstruction, siteLanguage } from './language.js'
 
 export class ReviseError extends Error {
   constructor(message, { code = 'REVISE_ERROR' } = {}) {
@@ -51,7 +52,8 @@ export async function reviseJob(ctx, {
   const result = await call(ctx, {
     system: `你是资深编辑。根据打回意见修改这篇长文。
 只输出修改后的完整 Markdown 正文，不要输出解释、不要包代码块。
-保留原有小节标题（除非意见要求调整），不要删掉有来源支撑的事实。`,
+保留原有小节标题（除非意见要求调整），不要删掉有来源支撑的事实。
+${languageInstruction(await siteLanguage(root))}`,
     user: `打回意见：\n${note}\n\n大纲：\n${outlineText}\n\n作者手册：\n${editorial.slice(0, 3000)}\n\n原稿：\n${article.body}`,
     maxTokens: 5000,
   })

@@ -2,6 +2,7 @@
 import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { callModel } from './llm.js'
+import { languageInstruction, siteLanguage } from './language.js'
 
 export class OutlineError extends Error {
   constructor(message, { code = 'OUTLINE_ERROR' } = {}) {
@@ -88,6 +89,7 @@ async function writeJson(root, jobId, value) {
 
 export async function outlineJob(ctx, { root, job, sources = [], call = callModel } = {}) {
   const prompt = outlinePrompt(job, sources)
+  prompt.system += `\n${languageInstruction(await siteLanguage(root))}`
   let lastError = null
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {
