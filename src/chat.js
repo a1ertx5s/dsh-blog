@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { readArticle } from './article.js'
 import { languageInstruction, siteLanguage } from './language.js'
 import { callModel } from './llm.js'
+import { createProposal, parseProposal } from './proposals.js'
 
 const ID = /^chat-[a-f0-9-]{36}$/
 
@@ -127,7 +128,10 @@ export async function sendMessage(ctx, {
   try {
     const result = await call(ctx, {
       system: `你是博客写作助手。基于文章上下文回答问题、给修改建议。
-不要直接声称已经修改文件；给出建议或改写文本即可。
+如果需要修改文章，只输出一个 JSON：
+{"reply":"一句说明","proposal":{"target":{"type":"section","heading":"小节标题"},"before":"原文中一段完整、唯一的内容","after":"改写后的内容"}}
+before 必须与原文逐字一致，且只出现一次；不需要修改时正常文字回复，不要输出 JSON。
+不要声称已经修改文件，修改由用户确认。
 ${languageInstruction(context.lang)}`,
       user: context.user,
       maxTokens: 1200,
@@ -147,7 +151,28 @@ ${languageInstruction(context.lang)}`,
   }
 
   if (!reply) reply = '（没有返回内容）'
-  session.messages.push({ role: 'assistant', content: reply, at: new Date().toISOString() })
+  const parsed = parseProposal(reply)
+  let proposal = null
+  if (parsed.proposal) {
+    try {
+      proposal = await createProposal(root, {
+        sessionId: session.id,
+        slug: session.slug,
+        target: parsed.proposal.target,
+        before: parsed.proposal.before,
+        after: parsed.proposal.after,
+      })
+    } catch {
+      proposal = null
+    }
+  }
+  reply = parsed.reply || (proposal ? '已生成修改建议，请确认。' : reply)
+  session.messages.push({
+    role: 'assistant',
+    content: reply,
+    at: new Date().toISOString(),
+    ...(proposal ? { proposalId: proposal.id } : {}),
+  })
   delete session.pending
   session.updatedAt = new Date().toISOString()
   await writeSession(root, session)

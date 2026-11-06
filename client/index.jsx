@@ -41,6 +41,7 @@ function BlogPanel({ target, onConsumed }) {
   const [leftOpen, setLeftOpen] = React.useState(false)
   const [outline, setOutline] = React.useState([])
   const [focus, setFocus] = React.useState(null)
+  const [refresh, setRefresh] = React.useState(0)
   const importRef = React.useRef(null)
 
   const load = React.useCallback(async () => {
@@ -249,7 +250,7 @@ function BlogPanel({ target, onConsumed }) {
 
           <main className="blog-main">
             {selected ? (
-              <ArticleDetail key={selected} slug={selected} onSaved={load} focus={focus} />
+              <ArticleDetail key={`${selected}:${refresh}`} slug={selected} onSaved={load} focus={focus} />
             ) : (
               <div className="blog-empty">
                 <p>{posts.length ? t('从左侧选一篇文章。') : t('还没有文章。回到起笔写一篇。')}</p>
@@ -259,7 +260,7 @@ function BlogPanel({ target, onConsumed }) {
 
           {chatOpen ? (
             <aside className="blog-rail-right">
-              <ChatRail slug={selected} onCollapse={() => setChatOpen(false)} />
+              <ChatRail slug={selected} onCollapse={() => setChatOpen(false)} onArticleSaved={() => { setRefresh((value) => value + 1); load() }} />
             </aside>
           ) : null}
         </div>
