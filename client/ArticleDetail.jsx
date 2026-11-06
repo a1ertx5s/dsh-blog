@@ -181,6 +181,7 @@ export function ArticleDetail({ slug, onSaved }) {
       const result = await api('/preview', { method: 'POST', body: { slug } })
       setPreviewInfo(result)
       setPreviewPage('post')
+      setTab('local')
     } catch (err) {
       setMessage({ kind: 'error', text: err.message })
     } finally {
@@ -332,6 +333,9 @@ export function ArticleDetail({ slug, onSaved }) {
             <button type="button" className={tab === 'preview' ? 'is-on' : ''} onClick={() => setTab('preview')}>{t('预览')}</button>
             <button type="button" className={tab === 'source' ? 'is-on' : ''} onClick={() => setTab('source')}>{t('源码')}</button>
             <button type="button" className={tab === 'versions' ? 'is-on' : ''} onClick={() => setTab('versions')}>{t('版本')}</button>
+            {previewInfo ? (
+              <button type="button" className={tab === 'local' ? 'is-on' : ''} onClick={() => setTab('local')}>{t('站点预览')}</button>
+            ) : null}
           </div>
           <button type="button" className="blog-button" onClick={() => fileRef.current?.click()} disabled={uploading}>
             {uploading ? t('上传中…') : t('插入图片')}
@@ -347,6 +351,29 @@ export function ArticleDetail({ slug, onSaved }) {
             onChange={(event) => setBody(event.target.value)}
             spellCheck={false}
           />
+        ) : tab === 'local' && previewInfo ? (
+          <div className="blog-local-inline">
+            <div className="blog-local-toolbar">
+              <div className="blog-tabs">
+                <button type="button" className={previewPage === 'post' ? 'is-on' : ''} onClick={() => setPreviewPage('post')}>{t('文章')}</button>
+                <button type="button" className={previewPage === 'home' ? 'is-on' : ''} onClick={() => setPreviewPage('home')}>{t('首页')}</button>
+                <button type="button" className={previewPage === 'about' ? 'is-on' : ''} onClick={() => setPreviewPage('about')}>{t('关于')}</button>
+              </div>
+              <span className="blog-spacer" />
+              <button type="button" className="blog-button is-primary" onClick={publishPreview} disabled={publishingPreview}>
+                {publishingPreview ? t('发布中…') : t('发布')}
+              </button>
+            </div>
+            <iframe
+              className="blog-local-frame-inline"
+              title={t('本地预览')}
+              src={previewPage === 'home'
+                ? previewInfo.basePath
+                : previewPage === 'about'
+                  ? `${previewInfo.basePath}about.html`
+                  : `${previewInfo.basePath}posts/${encodeURIComponent(slug)}.html`}
+            />
+          </div>
         ) : (
           <div className="blog-versions">
             <div className="blog-version-list">
@@ -401,38 +428,6 @@ export function ArticleDetail({ slug, onSaved }) {
           upload(file, 'cover')
         }}
       />
-      {previewInfo ? (
-        <div
-          className="blog-local-overlay"
-          role="dialog"
-          onClick={(event) => { if (event.target === event.currentTarget) setPreviewInfo(null) }}
-        >
-          <div className="blog-local-modal">
-            <div className="blog-local-toolbar">
-              <strong>{t('本地预览')}</strong>
-              <div className="blog-tabs">
-                <button type="button" className={previewPage === 'post' ? 'is-on' : ''} onClick={() => setPreviewPage('post')}>{t('文章')}</button>
-                <button type="button" className={previewPage === 'home' ? 'is-on' : ''} onClick={() => setPreviewPage('home')}>{t('首页')}</button>
-                <button type="button" className={previewPage === 'about' ? 'is-on' : ''} onClick={() => setPreviewPage('about')}>{t('关于')}</button>
-              </div>
-              <span className="blog-spacer" />
-              <button type="button" className="blog-button is-primary" onClick={publishPreview} disabled={publishingPreview}>
-                {publishingPreview ? t('发布中…') : t('发布')}
-              </button>
-              <button type="button" className="blog-button" onClick={() => setPreviewInfo(null)}>{t('关闭')}</button>
-            </div>
-            <iframe
-              className="blog-local-frame"
-              title={t('本地预览')}
-              src={previewPage === 'home'
-                ? previewInfo.basePath
-                : previewPage === 'about'
-                  ? `${previewInfo.basePath}about.html`
-                  : `${previewInfo.basePath}posts/${encodeURIComponent(slug)}.html`}
-            />
-          </div>
-        </div>
-      ) : null}
     </section>
   )
 }
