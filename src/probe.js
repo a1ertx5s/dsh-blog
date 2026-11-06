@@ -40,23 +40,56 @@ export async function probeModel(ctx) {
   const sessionId = randomUUID()
   try {
     const call = await llm.prepareCall(
-      { provider: info.provider, model: info.model, maxTokens: 16 },
+      { provider: info.provider, model: info.model, maxTokens: 256 },
       controller.signal,
-      (controls) => controls,
+      (controls, model) => {
+        // 推理模型先选最低档，避免 16/256 个 token 全花在思考上。
+        const effort = model?.reasoning?.efforts?.[0]?.id
+        return effort === undefined ? controls : { ...controls, reasoningEffort: effort }
+      },
     )
     let text = ''
+    let finish = null
+    let usage = null
+    const chunkTypes = new Set()
     for await (const chunk of call.stream({
       ...call.config,
       sessionId,
       messages: [{ role: 'user', content: [{ type: 'text', text: '只回复 OK' }], source: { kind: 'dsh-blog-probe' } }],
       signal: controller.signal,
     })) {
+      chunkTypes.add(chunk.type)
       if (chunk.type === 'text-delta') text += chunk.text
-      else if (chunk.type === 'finish' && ['error', 'aborted'].includes(chunk.reason?.kind)) {
-        throw new Error(chunk.reason?.failure?.message || '模型调用失败')
+      else if (chunk.type === 'block-end' && chunk.block?.type === 'text' && !text) text = chunk.block.text
+      else if (chunk.type === 'usage') usage = chunk.usage
+      else if (chunk.type === 'finish') {
+        finish = chunk.reason ?? null
+        if (finish && ['error', 'aborted'].includes(finish.kind)) {
+          throw new Error(finish.failure?.message || '模型调用失败')
+        }
       }
     }
-    return { ok: true, model: info.label, text: text.trim().slice(0, 40) || '(空)' }
+
+    if (!text.trim()) {
+      return {
+        ok: false,
+        error: `模型返回空文本（finish: ${finish?.kind ?? 'unknown'}）`,
+        provider: info.provider,
+        model: info.label,
+        finish: finish?.kind ?? null,
+        usage,
+        chunks: [...chunkTypes],
+      }
+    }
+
+    return {
+      ok: true,
+      provider: info.provider,
+      model: info.label,
+      text: text.trim().slice(0, 40),
+      finish: finish?.kind ?? null,
+      usage,
+    }
   } catch (err) {
     return { ok: false, error: err?.message || '模型调用失败' }
   } finally {
