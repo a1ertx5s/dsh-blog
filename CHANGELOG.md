@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2] - 2026-11-10
+
+### Changed
+
+- 顶部 Tab 改为液态玻璃样式：半透明、模糊、高光边框、滑动胶囊
+- 支持键盘左右/Home/End、暗色、`prefers-reduced-motion`、无 blur 降级
+
 ## [1.0.1] - 2026-11-06
 
 ### Added
