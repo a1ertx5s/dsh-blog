@@ -1,6 +1,6 @@
 {
   "name": "dsh-blog",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "DeepSeek Harness 插件：AI 长文工厂，自动研究、写作与发布到 GitHub Pages",
   "type": "module",
   "main": "src/host.js",
