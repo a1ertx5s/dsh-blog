@@ -1624,3 +1624,172 @@
     transition: none;
   }
 }
+
+/* ---- 起笔页：水墨欢迎页 ---- */
+
+.start-canvas {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  padding: 60px 24px 120px;
+  background-color: #fbfaf7;
+  background-image:
+    radial-gradient(60% 50% at 38% 34%, rgba(38, 52, 74, 0.12), transparent 70%),
+    radial-gradient(50% 45% at 62% 58%, rgba(38, 52, 74, 0.09), transparent 72%),
+    radial-gradient(70% 60% at 50% 78%, rgba(38, 52, 74, 0.06), transparent 75%),
+    radial-gradient(40% 35% at 24% 70%, rgba(90, 70, 50, 0.05), transparent 70%);
+}
+
+.start-inner {
+  width: min(860px, 72vw);
+  min-width: 320px;
+  text-align: center;
+}
+
+.start-title {
+  margin: 0 0 56px;
+  font-size: 44px;
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: #1f2328;
+}
+
+.start-composer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 22px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 32px;
+  background: #ffffff;
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.start-composer:focus-within {
+  border-color: rgba(38, 52, 74, 0.2);
+  box-shadow:
+    0 10px 36px rgba(0, 0, 0, 0.10),
+    0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.start-composer__icon {
+  display: inline-flex;
+  color: #8a8f98;
+  flex: 0 0 auto;
+}
+
+.start-input {
+  flex: 1;
+  min-width: 0;
+  max-height: 160px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1f2328;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+  overflow-y: auto;
+}
+
+.start-input::placeholder {
+  color: #9aa0a6;
+}
+
+.start-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: #1f2328;
+  color: #ffffff;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.start-send:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.start-send:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.start-error {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: #b42318;
+}
+
+@media (prefers-color-scheme: dark) {
+  .start-canvas {
+    background-color: #111214;
+    background-image:
+      radial-gradient(60% 50% at 38% 34%, rgba(150, 170, 200, 0.10), transparent 70%),
+      radial-gradient(50% 45% at 62% 58%, rgba(150, 170, 200, 0.08), transparent 72%),
+      radial-gradient(70% 60% at 50% 78%, rgba(150, 170, 200, 0.05), transparent 75%),
+      radial-gradient(40% 35% at 24% 70%, rgba(180, 150, 110, 0.05), transparent 70%);
+  }
+
+  .start-title {
+    color: #e6e8ea;
+  }
+
+  .start-composer {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: #1c1d20;
+    box-shadow:
+      0 8px 30px rgba(0, 0, 0, 0.45),
+      0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  .start-input {
+    color: #e6e8ea;
+  }
+
+  .start-input::placeholder {
+    color: #8b9096;
+  }
+
+  .start-send {
+    background: #e6e8ea;
+    color: #111214;
+  }
+
+  .start-error {
+    color: #ff8a80;
+  }
+}
+
+@media (max-width: 720px) {
+  .start-canvas {
+    padding: 40px 18px 80px;
+  }
+
+  .start-inner {
+    width: 90vw;
+    min-width: 0;
+  }
+
+  .start-title {
+    margin-bottom: 36px;
+    font-size: 32px;
+  }
+}
