@@ -1944,3 +1944,150 @@
     padding: 0 6px;
   }
 }
+
+/* ---- 起笔页：水墨锚定输入框 ---- */
+
+.start-canvas {
+  overflow: hidden;
+  background-color: #ffffff;
+  background-image: none;
+}
+
+.start-canvas::before,
+.start-canvas::after {
+  content: none;
+}
+
+.start-inner {
+  position: relative;
+  isolation: isolate;
+}
+
+.start-inner::before {
+  content: "";
+  position: absolute;
+  inset: -120px -18%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.start-inner::after {
+  content: "";
+  position: absolute;
+  inset: -140px -24%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(102deg, transparent 40%, rgba(18, 26, 38, 0.030) 46%, transparent 54%),
+    linear-gradient(84deg, transparent 58%, rgba(18, 26, 38, 0.020) 64%, transparent 72%);
+}
+
+.start-inner > * {
+  position: relative;
+  z-index: 1;
+}
+
+.start-composer {
+  position: relative;
+  isolation: isolate;
+}
+
+.start-composer::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 0;
+  width: 160%;
+  height: 420px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background:
+    radial-gradient(32% 38% at 46% 44%, rgba(18, 26, 38, 0.20), rgba(18, 26, 38, 0.10) 52%, transparent 78%),
+    radial-gradient(18% 22% at 40% 40%, rgba(18, 26, 38, 0.16), transparent 70%),
+    radial-gradient(26% 30% at 58% 56%, rgba(18, 26, 38, 0.10), transparent 76%),
+    radial-gradient(55% 62% at 50% 50%, rgba(18, 26, 38, 0.06), transparent 82%),
+    radial-gradient(16% 20% at 34% 58%, rgba(90, 70, 50, 0.04), transparent 76%);
+}
+
+.start-composer > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  .start-canvas {
+    background-color: #111214;
+  }
+
+  .start-canvas::before,
+  .start-canvas::after {
+    content: none;
+  }
+
+  .start-inner::before {
+    opacity: 0.035;
+    mix-blend-mode: screen;
+  }
+
+  .start-inner::after {
+    background:
+      linear-gradient(102deg, transparent 40%, rgba(190, 205, 225, 0.028) 46%, transparent 54%),
+      linear-gradient(84deg, transparent 58%, rgba(190, 205, 225, 0.018) 64%, transparent 72%);
+  }
+
+  .start-composer::before {
+    background:
+      radial-gradient(32% 38% at 46% 44%, rgba(190, 205, 225, 0.15), rgba(190, 205, 225, 0.07) 52%, transparent 78%),
+      radial-gradient(18% 22% at 40% 40%, rgba(190, 205, 225, 0.12), transparent 70%),
+      radial-gradient(26% 30% at 58% 56%, rgba(190, 205, 225, 0.08), transparent 76%),
+      radial-gradient(55% 62% at 50% 50%, rgba(190, 205, 225, 0.05), transparent 82%),
+      radial-gradient(16% 20% at 34% 58%, rgba(200, 175, 140, 0.035), transparent 76%);
+  }
+}
+
+.start-composer::before {
+  content: none;
+}
+
+.start-stage {
+  position: relative;
+  isolation: isolate;
+}
+
+.start-stage::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 0;
+  width: 160%;
+  height: 420px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background:
+    radial-gradient(32% 38% at 46% 44%, rgba(18, 26, 38, 0.20), rgba(18, 26, 38, 0.10) 52%, transparent 78%),
+    radial-gradient(18% 22% at 40% 40%, rgba(18, 26, 38, 0.16), transparent 70%),
+    radial-gradient(26% 30% at 58% 56%, rgba(18, 26, 38, 0.10), transparent 76%),
+    radial-gradient(55% 62% at 50% 50%, rgba(18, 26, 38, 0.06), transparent 82%),
+    radial-gradient(16% 20% at 34% 58%, rgba(90, 70, 50, 0.04), transparent 76%);
+}
+
+.start-stage .start-composer {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  .start-stage::before {
+    background:
+      radial-gradient(32% 38% at 46% 44%, rgba(190, 205, 225, 0.15), rgba(190, 205, 225, 0.07) 52%, transparent 78%),
+      radial-gradient(18% 22% at 40% 40%, rgba(190, 205, 225, 0.12), transparent 70%),
+      radial-gradient(26% 30% at 58% 56%, rgba(190, 205, 225, 0.08), transparent 76%),
+      radial-gradient(55% 62% at 50% 50%, rgba(190, 205, 225, 0.05), transparent 82%),
+      radial-gradient(16% 20% at 34% 58%, rgba(200, 175, 140, 0.035), transparent 76%);
+  }
+}

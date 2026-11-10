@@ -56,6 +56,7 @@ export function StartPage({ onStarted }) {
     <section className="start-canvas">
       <div className="start-inner">
         <h1 className="start-title">{t('今天写点什么？')}</h1>
+        <div className="start-stage">
         <div className="start-composer">
           <span className="start-composer__icon"><PenIcon /></span>
           <textarea
@@ -106,6 +107,7 @@ export function StartPage({ onStarted }) {
           >
             {busy ? '…' : '↵'}
           </button>
+        </div>
         </div>
         {error ? <p className="start-error">{error}</p> : null}
       </div>
