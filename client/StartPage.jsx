@@ -15,6 +15,7 @@ export function StartPage({ onStarted }) {
   const [brief, setBrief] = React.useState('')
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [menuOpen, setMenuOpen] = React.useState(false)
   const inputRef = React.useRef(null)
 
   React.useEffect(() => {
@@ -27,6 +28,13 @@ export function StartPage({ onStarted }) {
   React.useEffect(() => {
     inputRef.current?.focus()
   }, [])
+
+  React.useEffect(() => {
+    if (!menuOpen) return undefined
+    const close = () => setMenuOpen(false)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [menuOpen])
 
   async function submit() {
     const text = brief.trim()
@@ -66,6 +74,29 @@ export function StartPage({ onStarted }) {
             }}
             disabled={busy}
           />
+          <div className="start-model">
+            <button
+              type="button"
+              className="start-model__trigger"
+              onClick={(event) => {
+                event.stopPropagation()
+                setMenuOpen((value) => !value)
+              }}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+            >
+              {t('AI 自动')}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {menuOpen ? (
+              <div className="start-model__menu" role="menu">
+                <div className="start-model__item is-active" role="menuitem">{t('AI 自动')}</div>
+                <div className="start-model__hint">{t('更多模型即将支持')}</div>
+              </div>
+            ) : null}
+          </div>
           <button
             type="button"
             className="start-send"
