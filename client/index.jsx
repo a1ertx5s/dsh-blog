@@ -7,6 +7,7 @@ import { ArticleList } from './ArticleList.jsx'
 import { Diagnostics } from './Diagnostics.jsx'
 import { Pipeline } from './Pipeline.jsx'
 import { StartPage } from './StartPage.jsx'
+import { GlassTabs } from './GlassTabs.jsx'
 import { ChatRail } from './ChatRail.jsx'
 import { SitePage } from './SitePage.jsx'
 import { SettingsPage } from './SettingsPage.jsx'
@@ -286,18 +287,11 @@ function BlogShell() {
       <header className="blog-head">
         <div className="blog-head-top">
           <span className="blog-kicker">dsh-blog</span>
-          <nav className="blog-nav">
-            {TABS.map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                className={tab === key ? 'is-on' : ''}
-                onClick={() => setTab(key)}
-              >
-                {t(label)}
-              </button>
-            ))}
-          </nav>
+          <GlassTabs
+            items={TABS.map(([key, label]) => ({ key, label: t(label) }))}
+            value={tab}
+            onChange={setTab}
+          />
           <span className="blog-spacer" />
         </div>
       </header>
