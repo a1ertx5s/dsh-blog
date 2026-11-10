@@ -2147,3 +2147,53 @@
       radial-gradient(80% 84% at 50% 50%, rgba(190, 205, 225, 0.04), transparent 100%);
   }
 }
+
+/* ---- 起笔页：椭圆墨团 ---- */
+
+.start-stage::before,
+.start-stage::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* 主晕：大、淡、软 */
+.start-stage::before {
+  width: 200%;
+  max-width: 1500px;
+  height: 640px;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(closest-side at 50% 50%, rgba(18, 26, 38, 0.20), rgba(18, 26, 38, 0.10) 55%, rgba(18, 26, 38, 0.03) 80%, transparent 100%);
+  filter: blur(36px);
+}
+
+/* 浓墨核：小、偏左上 */
+.start-stage::after {
+  width: 96%;
+  max-width: 780px;
+  height: 300px;
+  transform: translate(-58%, -58%);
+  background:
+    radial-gradient(closest-side at 50% 50%, rgba(18, 26, 38, 0.24), rgba(18, 26, 38, 0.10) 60%, transparent 100%);
+  filter: blur(28px);
+  z-index: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .start-stage::before {
+    background:
+      radial-gradient(closest-side at 50% 50%, rgba(190, 205, 225, 0.16), rgba(190, 205, 225, 0.08) 55%, rgba(190, 205, 225, 0.02) 80%, transparent 100%);
+  }
+
+  .start-stage::after {
+    background:
+      radial-gradient(closest-side at 50% 50%, rgba(190, 205, 225, 0.18), rgba(190, 205, 225, 0.08) 60%, transparent 100%);
+  }
+}
