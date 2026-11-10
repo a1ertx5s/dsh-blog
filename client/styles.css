@@ -1793,3 +1793,154 @@
     font-size: 32px;
   }
 }
+
+/* ---- 起笔页：水墨重做 + 模型选择 ---- */
+
+.start-canvas {
+  background-color: #ffffff;
+  background-image:
+    radial-gradient(28% 22% at 46% 32%, rgba(18, 26, 38, 0.20), rgba(18, 26, 38, 0.10) 45%, transparent 72%),
+    radial-gradient(22% 18% at 58% 40%, rgba(18, 26, 38, 0.14), transparent 70%),
+    radial-gradient(60% 45% at 50% 38%, rgba(18, 26, 38, 0.06), transparent 75%),
+    radial-gradient(18% 14% at 36% 46%, rgba(90, 70, 50, 0.05), transparent 72%);
+}
+
+.start-canvas::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.start-canvas::after {
+  content: "";
+  position: absolute;
+  inset: -10% -20%;
+  pointer-events: none;
+  background:
+    linear-gradient(102deg, transparent 42%, rgba(18, 26, 38, 0.035) 46%, transparent 52%),
+    linear-gradient(84deg, transparent 60%, rgba(18, 26, 38, 0.022) 64%, transparent 70%);
+}
+
+.start-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.start-model {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.start-model__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #6b7280;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.start-model__trigger:hover {
+  background: rgba(18, 26, 38, 0.05);
+  color: #1f2328;
+}
+
+.start-model__menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 5;
+  min-width: 180px;
+  padding: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+}
+
+.start-model__item {
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1f2328;
+}
+
+.start-model__item.is-active {
+  background: #f2f3f5;
+}
+
+.start-model__hint {
+  margin-top: 4px;
+  padding: 8px 10px 4px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 12px;
+  color: #9aa0a6;
+}
+
+@media (prefers-color-scheme: dark) {
+  .start-canvas {
+    background-color: #111214;
+    background-image:
+      radial-gradient(28% 22% at 46% 32%, rgba(190, 205, 225, 0.16), rgba(190, 205, 225, 0.08) 45%, transparent 72%),
+      radial-gradient(22% 18% at 58% 40%, rgba(190, 205, 225, 0.11), transparent 70%),
+      radial-gradient(60% 45% at 50% 38%, rgba(190, 205, 225, 0.05), transparent 75%),
+      radial-gradient(18% 14% at 36% 46%, rgba(200, 175, 140, 0.04), transparent 72%);
+  }
+
+  .start-canvas::before {
+    opacity: 0.04;
+    mix-blend-mode: screen;
+  }
+
+  .start-canvas::after {
+    background:
+      linear-gradient(102deg, transparent 42%, rgba(190, 205, 225, 0.03) 46%, transparent 52%),
+      linear-gradient(84deg, transparent 60%, rgba(190, 205, 225, 0.02) 64%, transparent 70%);
+  }
+
+  .start-model__trigger {
+    color: #9aa0a6;
+  }
+
+  .start-model__trigger:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #e6e8ea;
+  }
+
+  .start-model__menu {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: #1c1d20;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  .start-model__item {
+    color: #e6e8ea;
+  }
+
+  .start-model__item.is-active {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .start-model__hint {
+    border-top-color: rgba(255, 255, 255, 0.08);
+    color: #8b9096;
+  }
+}
+
+@media (max-width: 560px) {
+  .start-model__trigger {
+    font-size: 12px;
+    padding: 0 6px;
+  }
+}
