@@ -2197,3 +2197,8 @@
       radial-gradient(closest-side at 50% 50%, rgba(190, 205, 225, 0.18), rgba(190, 205, 225, 0.08) 60%, transparent 100%);
   }
 }
+
+/* 去掉顶部品牌标识后，Tab 直接靠左 */
+.blog-head-top {
+  gap: 0;
+}
