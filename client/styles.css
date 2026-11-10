@@ -2119,3 +2119,31 @@
       radial-gradient(16% 20% at 34% 58%, rgba(200, 175, 140, 0.04), transparent 74%);
   }
 }
+
+/* ---- 起笔页：墨团边缘羽化 ---- */
+
+.start-stage::before {
+  width: 200%;
+  max-width: 1500px;
+  height: 640px;
+  top: 50%;
+  background:
+    radial-gradient(34% 38% at 48% 48%, rgba(18, 26, 38, 0.26), rgba(18, 26, 38, 0.12) 45%, transparent 75%),
+    radial-gradient(20% 22% at 42% 44%, rgba(18, 26, 38, 0.20), transparent 70%),
+    radial-gradient(30% 32% at 58% 54%, rgba(18, 26, 38, 0.14), transparent 72%),
+    radial-gradient(55% 58% at 50% 50%, rgba(18, 26, 38, 0.09), transparent 80%),
+    radial-gradient(80% 84% at 50% 50%, rgba(18, 26, 38, 0.05), transparent 100%);
+  -webkit-mask-image: radial-gradient(closest-side, #000 50%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 50%, transparent 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .start-stage::before {
+    background:
+      radial-gradient(34% 38% at 48% 48%, rgba(190, 205, 225, 0.20), rgba(190, 205, 225, 0.09) 45%, transparent 75%),
+      radial-gradient(20% 22% at 42% 44%, rgba(190, 205, 225, 0.16), transparent 70%),
+      radial-gradient(30% 32% at 58% 54%, rgba(190, 205, 225, 0.11), transparent 72%),
+      radial-gradient(55% 58% at 50% 50%, rgba(190, 205, 225, 0.07), transparent 80%),
+      radial-gradient(80% 84% at 50% 50%, rgba(190, 205, 225, 0.04), transparent 100%);
+  }
+}
