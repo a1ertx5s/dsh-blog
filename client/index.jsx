@@ -286,7 +286,6 @@ function BlogShell() {
       <style>{css}</style>
       <header className="blog-head">
         <div className="blog-head-top">
-          <span className="blog-kicker">dsh-blog</span>
           <GlassTabs
             items={TABS.map(([key, label]) => ({ key, label: t(label) }))}
             value={tab}
