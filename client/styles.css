@@ -2665,3 +2665,69 @@
     padding: 20px 20px 32px;
   }
 }
+
+
+/* ---- 立规：黑白灰图标 ---- */
+
+.set-nav-icon,
+.set-row-icon {
+  background: transparent;
+  color: #6b7280;
+}
+
+.set-nav-item.is-on {
+  background: #1d1d1f;
+  color: #ffffff;
+}
+
+.set-nav-item.is-on .set-nav-icon {
+  color: #ffffff;
+}
+
+.set-account {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.06);
+  color: #1d1d1f;
+}
+
+.set-account-avatar {
+  background: rgba(0, 0, 0, 0.08);
+  color: #1d1d1f;
+}
+
+.set-account-text em {
+  color: #6b7280;
+  opacity: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  .set-nav-icon,
+  .set-row-icon {
+    color: #9aa0a6;
+  }
+
+  .set-nav-item.is-on {
+    background: #f5f5f7;
+    color: #111214;
+  }
+
+  .set-nav-item.is-on .set-nav-icon {
+    color: #111214;
+  }
+
+  .set-account {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.08);
+    color: #f5f5f7;
+  }
+
+  .set-account-avatar {
+    background: rgba(255, 255, 255, 0.14);
+    color: #f5f5f7;
+  }
+
+  .set-account-text em {
+    color: #9aa0a6;
+    opacity: 1;
+  }
+}
