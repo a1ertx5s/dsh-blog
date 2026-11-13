@@ -27,7 +27,6 @@ const GROUPS = [
   {
     key: 'site',
     label: '站点',
-    color: '#0a84ff',
     icon: 'globe',
     fields: [
       { key: 'title', label: '标题' },
@@ -41,7 +40,6 @@ const GROUPS = [
   {
     key: 'content',
     label: '内容',
-    color: '#af52de',
     icon: 'doc',
     fields: [
       { key: 'editorial', label: '作者手册', readOnly: true, display: 'editorial.md' },
@@ -52,7 +50,6 @@ const GROUPS = [
   {
     key: 'factory',
     label: '工厂',
-    color: '#ff9500',
     icon: 'gear',
     fields: [
       { key: 'budget.perArticleTokens', label: '单篇预算', kind: 'number', suffix: 'tokens' },
@@ -63,7 +60,6 @@ const GROUPS = [
   {
     key: 'publish',
     label: '发布',
-    color: '#34c759',
     icon: 'upload',
     fields: [
       { key: 'deploy.dir', label: '部署目录' },
@@ -74,7 +70,6 @@ const GROUPS = [
   {
     key: 'model',
     label: '模型与搜索',
-    color: '#5ac8fa',
     icon: 'spark',
     fields: [
       { key: 'model', label: '当前模型', readOnly: true, display: '跟随 the agent harness 默认模型' },
@@ -84,7 +79,6 @@ const GROUPS = [
   {
     key: 'diag',
     label: '诊断',
-    color: '#8e8e93',
     icon: 'pulse',
     fields: [],
   },
@@ -214,7 +208,7 @@ export function SettingsPage() {
               className={`set-nav-item${group === item.key ? ' is-on' : ''}`}
               onClick={() => selectGroup(item.key)}
             >
-              <span className="set-nav-icon" style={{ background: item.color }}>
+              <span className="set-nav-icon">
                 <Icon name={item.icon} />
               </span>
               <span>{item.label}</span>
@@ -272,7 +266,7 @@ export function SettingsPage() {
               const value = field.readOnly ? field.display : getPath(form, field.key)
               return (
                 <button key={field.key} type="button" className="set-row" onClick={() => openDetail(field)}>
-                  <span className="set-row-icon" style={{ background: activeGroup.color }}>
+                  <span className="set-row-icon">
                     <Icon name={activeGroup.icon} />
                   </span>
                   <span className="set-row-label">{field.label}</span>
